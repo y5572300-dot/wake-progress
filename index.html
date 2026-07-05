@@ -28,10 +28,18 @@
   h1 {
     text-align: center;
     font-size: 26px;
-    margin: 4px 0 20px;
+    margin: 4px 0 4px;
     letter-spacing: .3px;
     color: #4a4266;
   }
+  .sync {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 16px;
+    min-height: 15px;
+  }
+  .sync.ok { color: #6cb98a; }
 
   /* Вкладки */
   .tabs {
@@ -212,7 +220,7 @@
   /* Мобильная адаптация */
   @media (max-width: 600px) {
     body { padding-left: 10px; padding-right: 10px; }
-    h1 { font-size: 20px; margin-bottom: 14px; }
+    h1 { font-size: 20px; }
     .tabs { grid-template-columns: repeat(2, 1fr); }
     .tab-btn { font-size: 15px; padding: 12px 4px; }
     .block-title { font-size: 16px; }
@@ -229,6 +237,7 @@
 <body>
 <div class="wrap">
   <h1>🏄‍♀️ Wake Progress</h1>
+  <div class="sync" id="sync-status"></div>
 
   <div class="tabs" id="tabs"></div>
   <div id="panels"></div>
@@ -328,12 +337,79 @@ const COURSE = [
   }
 ];
 
+// ------- Хранилище: облако (Firebase) + локальный кеш -------
+const DB_URL = "https://wake-progress-default-rtdb.europe-west1.firebasedatabase.app";
 const STORAGE_KEY = "wake-progress-v1";
-let state = {};
-try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
+const PENDING_KEY = "wake-progress-pending-v1";
 
-function saveState() {
+let state = {};   // текущие отметки: ключ -> true
+let pending = {}; // не отправленные в облако изменения: ключ -> true (поставить) | null (снять)
+try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
+try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
+
+const checkboxRefs = {}; // ключ -> элемент чекбокса
+
+function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+}
+
+// Firebase запрещает в ключах символы . $ # [ ] / — кодируем
+function encKey(k) { return encodeURIComponent(k).replace(/\./g, "%2E"); }
+
+const syncEl = document.getElementById("sync-status");
+function setSync(text, ok) {
+  syncEl.textContent = text;
+  syncEl.className = "sync" + (ok ? " ok" : "");
+}
+
+async function flush() {
+  const snapshot = Object.assign({}, pending);
+  const keys = Object.keys(snapshot);
+  if (!keys.length) return true;
+  const body = {};
+  keys.forEach(k => { body[encKey(k)] = snapshot[k]; });
+  try {
+    const r = await fetch(DB_URL + "/state.json", { method: "PATCH", body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status);
+    keys.forEach(k => { if (pending[k] === snapshot[k]) delete pending[k]; });
+    saveLocal();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function pull() {
+  try {
+    const r = await fetch(DB_URL + "/state.json");
+    if (!r.ok) throw new Error(r.status);
+    const remoteRaw = await r.json();
+    if (remoteRaw === null && Object.keys(state).length) {
+      // облако пустое, а локально отметки есть — заливаем их наверх
+      Object.keys(state).forEach(k => { pending[k] = true; });
+    } else {
+      const remote = {};
+      if (remoteRaw) Object.keys(remoteRaw).forEach(ek => {
+        if (remoteRaw[ek]) remote[decodeURIComponent(ek)] = true;
+      });
+      state = remote;
+      Object.keys(pending).forEach(k => {
+        if (pending[k]) state[k] = true; else delete state[k];
+      });
+    }
+    saveLocal();
+    renderState();
+    const ok = await flush();
+    setSync(ok ? "✓ синхронизировано" : "нет сети — отметки сохранятся и отправятся позже", ok);
+  } catch (e) {
+    setSync("нет сети — отметки сохраняются на этом устройстве", false);
+  }
+}
+
+function renderState() {
+  Object.keys(checkboxRefs).forEach(k => { checkboxRefs[k].checked = !!state[k]; });
+  PEOPLE.forEach(p => updateProgress(p.name));
 }
 
 function exKey(person, blockId, group, item) {
@@ -352,7 +428,7 @@ function applyTheme(el, p) {
   el.style.setProperty("--p-glow", p.glow);
 }
 
-// Рендер вкладок и панелей
+// ------- Рендер вкладок и панелей -------
 const tabsEl = document.getElementById("tabs");
 const panelsEl = document.getElementById("panels");
 
@@ -420,10 +496,13 @@ PEOPLE.forEach((p, pi) => {
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = !!state[key];
+        checkboxRefs[key] = cb;
         cb.addEventListener("change", () => {
-          if (cb.checked) state[key] = true; else delete state[key];
-          saveState();
+          if (cb.checked) { state[key] = true; pending[key] = true; }
+          else { delete state[key]; pending[key] = null; }
+          saveLocal();
           updateProgress(person);
+          flush().then(ok => setSync(ok ? "✓ синхронизировано" : "нет сети — отметки сохранятся и отправятся позже", ok));
         });
         const span = document.createElement("span");
         span.textContent = item;
@@ -461,6 +540,12 @@ function updateProgress(person) {
   document.getElementById("total-fill-" + slug(person)).style.width = tpct + "%";
   document.getElementById("total-txt-" + slug(person)).textContent = totalDone + " / " + totalAll + " · " + tpct + "%";
 }
+
+// ------- Запуск синхронизации -------
+pull();
+setInterval(pull, 20000);
+window.addEventListener("online", pull);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
 </script>
 </body>
 </html>
