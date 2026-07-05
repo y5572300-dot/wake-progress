@@ -64,12 +64,23 @@
     transition: all .2s;
     box-shadow: var(--shadow);
     min-height: 46px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tab-btn.active {
     color: #fff;
     background: var(--p-accent);
     border-color: var(--p-accent);
     box-shadow: 0 4px 14px var(--p-glow);
+  }
+  .tab-btn.add {
+    color: var(--muted);
+    background: transparent;
+    border: 2px dashed #d4cfe3;
+    box-shadow: none;
+    font-size: 20px;
+    font-weight: 400;
   }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
@@ -217,11 +228,92 @@
     text-decoration: line-through;
   }
 
+  .remove-person {
+    display: block;
+    margin: 6px auto 0;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 10px;
+  }
+
+  /* Модальное окно добавления */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(60, 50, 90, .35);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .overlay.open { display: flex; }
+  .dialog {
+    background: #fff;
+    border-radius: 18px;
+    padding: 22px 20px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 12px 40px rgba(60, 50, 90, .25);
+  }
+  .dialog h2 { margin: 0 0 14px; font-size: 18px; color: #4a4266; text-align: center; }
+  .dialog input[type="text"] {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 12px 14px;
+    border: 2px solid #e2ddef;
+    border-radius: 12px;
+    outline: none;
+    color: var(--text);
+  }
+  .dialog input[type="text"]:focus { border-color: #b7aee0; }
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 16px 0 4px;
+  }
+  .swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+  .swatch.selected { border-color: #4a4266; }
+  .dialog-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .dialog-btns button {
+    flex: 1;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    min-height: 46px;
+  }
+  .btn-cancel { background: #f0edf7; color: var(--muted); }
+  .btn-ok { background: #4a4266; color: #fff; }
+  .dialog .err { color: #d14f4f; font-size: 13px; min-height: 16px; margin: 8px 0 0; text-align: center; }
+
   /* Мобильная адаптация */
   @media (max-width: 600px) {
     body { padding-left: 10px; padding-right: 10px; }
     h1 { font-size: 20px; }
-    .tabs { grid-template-columns: repeat(2, 1fr); }
+    .tabs { grid-template-columns: repeat(3, 1fr); }
     .tab-btn { font-size: 15px; padding: 12px 4px; }
     .block-title { font-size: 16px; }
     .block-count { font-size: 11px; }
@@ -243,13 +335,39 @@
   <div id="panels"></div>
 </div>
 
+<div class="overlay" id="add-overlay">
+  <div class="dialog">
+    <h2>Новая вкладка</h2>
+    <input type="text" id="add-name" placeholder="Имя" maxlength="14">
+    <div class="swatches" id="add-swatches"></div>
+    <div class="err" id="add-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="add-cancel">Отмена</button>
+      <button class="btn-ok" id="add-ok">Добавить</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// У каждого — свои цвета: Лена и Яся розовые, Саша голубой, Алиса сиреневая
-const PEOPLE = [
-  { name: "Лена",  accent: "#ec6a9f", accent2: "#f9a8c9", soft: "#fdeef4", dark: "#c14479", glow: "rgba(236,106,159,.35)" },
-  { name: "Яся",   accent: "#f4749b", accent2: "#ffb3c6", soft: "#ffeff3", dark: "#d14f7c", glow: "rgba(244,116,155,.35)" },
-  { name: "Саша",  accent: "#4da3e0", accent2: "#8ecdf5", soft: "#eaf5fd", dark: "#2d7cb8", glow: "rgba(77,163,224,.35)" },
-  { name: "Алиса", accent: "#a577d8", accent2: "#cdaef0", soft: "#f5eefc", dark: "#7e51b3", glow: "rgba(165,119,216,.35)" }
+// Цветовые наборы: accent / accent2 / soft / dark / glow
+const PALETTES = [
+  { accent: "#ec6a9f", accent2: "#f9a8c9", soft: "#fdeef4", dark: "#c14479", glow: "rgba(236,106,159,.35)" }, // розовый
+  { accent: "#f4749b", accent2: "#ffb3c6", soft: "#ffeff3", dark: "#d14f7c", glow: "rgba(244,116,155,.35)" }, // тёплый розовый
+  { accent: "#4da3e0", accent2: "#8ecdf5", soft: "#eaf5fd", dark: "#2d7cb8", glow: "rgba(77,163,224,.35)" },  // голубой
+  { accent: "#a577d8", accent2: "#cdaef0", soft: "#f5eefc", dark: "#7e51b3", glow: "rgba(165,119,216,.35)" }, // сиреневый
+  { accent: "#4ec9a5", accent2: "#8fe3c8", soft: "#eafaf4", dark: "#2e9e7d", glow: "rgba(78,201,165,.35)" },  // мятный
+  { accent: "#f29a5b", accent2: "#f8c39a", soft: "#fdf2e7", dark: "#c9702f", glow: "rgba(242,154,91,.35)" },  // персиковый
+  { accent: "#3ec3cd", accent2: "#8adfe6", soft: "#e8f8fa", dark: "#26969f", glow: "rgba(62,195,205,.35)" },  // бирюзовый
+  { accent: "#ef7676", accent2: "#f8aeae", soft: "#fdeeee", dark: "#c74d4d", glow: "rgba(239,118,118,.35)" }, // коралловый
+  { accent: "#d9a824", accent2: "#eccd78", soft: "#fbf5e2", dark: "#a67c12", glow: "rgba(217,168,36,.35)" }   // золотой
+];
+
+// Базовые вкладки — их нельзя удалить
+const BASE_PEOPLE = [
+  { name: "Лена",  palette: 0 },
+  { name: "Яся",   palette: 1 },
+  { name: "Саша",  palette: 2 },
+  { name: "Алиса", palette: 3 }
 ];
 
 const COURSE = [
@@ -341,17 +459,22 @@ const COURSE = [
 const DB_URL = "https://wake-progress-default-rtdb.europe-west1.firebasedatabase.app";
 const STORAGE_KEY = "wake-progress-v1";
 const PENDING_KEY = "wake-progress-pending-v1";
+const PEOPLE_KEY = "wake-progress-people-v1";
+const ACTIVE_KEY = "wake-progress-active-tab";
 
-let state = {};   // текущие отметки: ключ -> true
-let pending = {}; // не отправленные в облако изменения: ключ -> true (поставить) | null (снять)
+let state = {};        // текущие отметки: ключ -> true
+let pending = {};      // не отправленные в облако изменения: ключ -> true | null
+let customPeople = {}; // добавленные вкладки: id -> {name, palette, created}
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
 try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
+try { customPeople = JSON.parse(localStorage.getItem(PEOPLE_KEY)) || {}; } catch (e) { customPeople = {}; }
 
-const checkboxRefs = {}; // ключ -> элемент чекбокса
+let checkboxRefs = {}; // ключ -> элемент чекбокса
 
 function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  localStorage.setItem(PEOPLE_KEY, JSON.stringify(customPeople));
 }
 
 // Firebase запрещает в ключах символы . $ # [ ] / — кодируем
@@ -361,6 +484,16 @@ const syncEl = document.getElementById("sync-status");
 function setSync(text, ok) {
   syncEl.textContent = text;
   syncEl.className = "sync" + (ok ? " ok" : "");
+}
+const MSG_OK = "✓ синхронизировано";
+const MSG_QUEUE = "нет сети — отметки сохранятся и отправятся позже";
+
+function allPeople() {
+  const custom = Object.keys(customPeople).map(id => {
+    const p = customPeople[id] || {};
+    return { id: id, name: p.name, palette: p.palette || 0, created: p.created || 0 };
+  }).filter(p => p.name).sort((a, b) => a.created - b.created);
+  return BASE_PEOPLE.map(p => ({ id: null, name: p.name, palette: p.palette })).concat(custom);
 }
 
 async function flush() {
@@ -380,11 +513,25 @@ async function flush() {
   }
 }
 
+let peopleSig = JSON.stringify(customPeople);
+
 async function pull() {
   try {
-    const r = await fetch(DB_URL + "/state.json");
+    const r = await fetch(DB_URL + "/.json");
     if (!r.ok) throw new Error(r.status);
-    const remoteRaw = await r.json();
+    const data = (await r.json()) || {};
+
+    // список вкладок
+    const remotePeople = data.people || {};
+    const sig = JSON.stringify(remotePeople);
+    if (sig !== peopleSig) {
+      peopleSig = sig;
+      customPeople = remotePeople;
+      buildUI();
+    }
+
+    // отметки
+    const remoteRaw = ("state" in data) ? data.state : null;
     if (remoteRaw === null && Object.keys(state).length) {
       // облако пустое, а локально отметки есть — заливаем их наверх
       Object.keys(state).forEach(k => { pending[k] = true; });
@@ -401,7 +548,7 @@ async function pull() {
     saveLocal();
     renderState();
     const ok = await flush();
-    setSync(ok ? "✓ синхронизировано" : "нет сети — отметки сохранятся и отправятся позже", ok);
+    setSync(ok ? MSG_OK : MSG_QUEUE, ok);
   } catch (e) {
     setSync("нет сети — отметки сохраняются на этом устройстве", false);
   }
@@ -409,7 +556,7 @@ async function pull() {
 
 function renderState() {
   Object.keys(checkboxRefs).forEach(k => { checkboxRefs[k].checked = !!state[k]; });
-  PEOPLE.forEach(p => updateProgress(p.name));
+  allPeople().forEach(p => updateProgress(p.name));
 }
 
 function exKey(person, blockId, group, item) {
@@ -420,108 +567,144 @@ function slug(s) {
   return s.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "-");
 }
 
-function applyTheme(el, p) {
-  el.style.setProperty("--p-accent", p.accent);
-  el.style.setProperty("--p-accent2", p.accent2);
-  el.style.setProperty("--p-soft", p.soft);
-  el.style.setProperty("--p-dark", p.dark);
-  el.style.setProperty("--p-glow", p.glow);
+function applyTheme(el, pal) {
+  el.style.setProperty("--p-accent", pal.accent);
+  el.style.setProperty("--p-accent2", pal.accent2);
+  el.style.setProperty("--p-soft", pal.soft);
+  el.style.setProperty("--p-dark", pal.dark);
+  el.style.setProperty("--p-glow", pal.glow);
 }
 
 // ------- Рендер вкладок и панелей -------
 const tabsEl = document.getElementById("tabs");
 const panelsEl = document.getElementById("panels");
 
-PEOPLE.forEach((p, pi) => {
-  const person = p.name;
+function activateTab(name) {
+  localStorage.setItem(ACTIVE_KEY, name);
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.person === name));
+  document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.dataset.person === name));
+}
 
-  const btn = document.createElement("button");
-  btn.className = "tab-btn" + (pi === 0 ? " active" : "");
-  btn.textContent = person;
-  applyTheme(btn, p);
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("panel-" + slug(person)).classList.add("active");
-  });
-  tabsEl.appendChild(btn);
+function buildUI() {
+  tabsEl.innerHTML = "";
+  panelsEl.innerHTML = "";
+  checkboxRefs = {};
 
-  const panel = document.createElement("div");
-  panel.className = "tab-panel" + (pi === 0 ? " active" : "");
-  panel.id = "panel-" + slug(person);
-  applyTheme(panel, p);
+  const people = allPeople();
+  const savedActive = localStorage.getItem(ACTIVE_KEY);
+  const activeName = people.some(p => p.name === savedActive) ? savedActive : people[0].name;
 
-  // общий прогресс
-  const total = document.createElement("div");
-  total.className = "total";
-  total.innerHTML =
-    '<div class="label"><b>Общий прогресс — ' + person + '</b><span id="total-txt-' + slug(person) + '"></span></div>' +
-    '<div class="bar big"><div class="fill" id="total-fill-' + slug(person) + '"></div></div>';
-  panel.appendChild(total);
+  // вкладок может стать больше четырёх — расширяем сетку
+  const cols = Math.min(people.length + 1, window.matchMedia("(max-width: 600px)").matches ? 3 : 5);
+  tabsEl.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
 
-  COURSE.forEach(block => {
-    const det = document.createElement("details");
-    det.className = "block";
+  people.forEach(p => {
+    const pal = PALETTES[p.palette % PALETTES.length];
+    const person = p.name;
 
-    const summary = document.createElement("summary");
-    summary.innerHTML =
-      '<div class="block-head">' +
-        '<div class="block-title"><span class="arrow">▶</span>' + block.title + '</div>' +
-        '<div class="block-count" id="count-' + slug(person) + '-' + block.id + '"></div>' +
-      '</div>' +
-      '<div class="bar"><div class="fill" id="fill-' + slug(person) + '-' + block.id + '"></div></div>';
-    det.appendChild(summary);
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (person === activeName ? " active" : "");
+    btn.textContent = person;
+    btn.dataset.person = person;
+    applyTheme(btn, pal);
+    btn.addEventListener("click", () => activateTab(person));
+    tabsEl.appendChild(btn);
 
-    const body = document.createElement("div");
-    body.className = "block-body";
+    const panel = document.createElement("div");
+    panel.className = "tab-panel" + (person === activeName ? " active" : "");
+    panel.dataset.person = person;
+    panel.id = "panel-" + slug(person);
+    applyTheme(panel, pal);
 
-    if (block.note) {
-      const n = document.createElement("div");
-      n.className = "note";
-      n.textContent = block.note;
-      body.appendChild(n);
-    }
+    const total = document.createElement("div");
+    total.className = "total";
+    total.innerHTML =
+      '<div class="label"><b>Общий прогресс — ' + person + '</b><span id="total-txt-' + slug(person) + '"></span></div>' +
+      '<div class="bar big"><div class="fill" id="total-fill-' + slug(person) + '"></div></div>';
+    panel.appendChild(total);
 
-    block.groups.forEach(group => {
-      const gt = document.createElement("div");
-      gt.className = "group-title";
-      gt.textContent = group.name;
-      body.appendChild(gt);
+    COURSE.forEach(block => {
+      const det = document.createElement("details");
+      det.className = "block";
 
-      group.items.forEach(item => {
-        const key = exKey(person, block.id, group.name, item);
-        const label = document.createElement("label");
-        label.className = "ex";
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = !!state[key];
-        checkboxRefs[key] = cb;
-        cb.addEventListener("change", () => {
-          if (cb.checked) { state[key] = true; pending[key] = true; }
-          else { delete state[key]; pending[key] = null; }
-          saveLocal();
-          updateProgress(person);
-          flush().then(ok => setSync(ok ? "✓ синхронизировано" : "нет сети — отметки сохранятся и отправятся позже", ok));
+      const summary = document.createElement("summary");
+      summary.innerHTML =
+        '<div class="block-head">' +
+          '<div class="block-title"><span class="arrow">▶</span>' + block.title + '</div>' +
+          '<div class="block-count" id="count-' + slug(person) + '-' + block.id + '"></div>' +
+        '</div>' +
+        '<div class="bar"><div class="fill" id="fill-' + slug(person) + '-' + block.id + '"></div></div>';
+      det.appendChild(summary);
+
+      const body = document.createElement("div");
+      body.className = "block-body";
+
+      if (block.note) {
+        const n = document.createElement("div");
+        n.className = "note";
+        n.textContent = block.note;
+        body.appendChild(n);
+      }
+
+      block.groups.forEach(group => {
+        const gt = document.createElement("div");
+        gt.className = "group-title";
+        gt.textContent = group.name;
+        body.appendChild(gt);
+
+        group.items.forEach(item => {
+          const key = exKey(person, block.id, group.name, item);
+          const label = document.createElement("label");
+          label.className = "ex";
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!state[key];
+          checkboxRefs[key] = cb;
+          cb.addEventListener("change", () => {
+            if (cb.checked) { state[key] = true; pending[key] = true; }
+            else { delete state[key]; pending[key] = null; }
+            saveLocal();
+            updateProgress(person);
+            flush().then(ok => setSync(ok ? MSG_OK : MSG_QUEUE, ok));
+          });
+          const span = document.createElement("span");
+          span.textContent = item;
+          label.appendChild(cb);
+          label.appendChild(span);
+          body.appendChild(label);
         });
-        const span = document.createElement("span");
-        span.textContent = item;
-        label.appendChild(cb);
-        label.appendChild(span);
-        body.appendChild(label);
       });
+
+      det.appendChild(body);
+      panel.appendChild(det);
     });
 
-    det.appendChild(body);
-    panel.appendChild(det);
+    // удаление — только для добавленных вкладок
+    if (p.id) {
+      const rm = document.createElement("button");
+      rm.className = "remove-person";
+      rm.textContent = "Удалить вкладку «" + person + "»";
+      rm.addEventListener("click", () => removePerson(p.id, person));
+      panel.appendChild(rm);
+    }
+
+    panelsEl.appendChild(panel);
+    updateProgress(person);
   });
 
-  panelsEl.appendChild(panel);
-  updateProgress(person);
-});
+  // кнопка добавления
+  const add = document.createElement("button");
+  add.className = "tab-btn add";
+  add.textContent = "+";
+  add.title = "Добавить вкладку";
+  add.addEventListener("click", openAddDialog);
+  tabsEl.appendChild(add);
+}
 
 function updateProgress(person) {
   let totalDone = 0, totalAll = 0;
+  const totalFill = document.getElementById("total-fill-" + slug(person));
+  if (!totalFill) return;
   COURSE.forEach(block => {
     let done = 0, all = 0;
     block.groups.forEach(group => {
@@ -537,11 +720,87 @@ function updateProgress(person) {
     document.getElementById("count-" + slug(person) + "-" + block.id).textContent = done + " / " + all + " · " + pct + "%";
   });
   const tpct = totalAll ? Math.round(totalDone / totalAll * 100) : 0;
-  document.getElementById("total-fill-" + slug(person)).style.width = tpct + "%";
+  totalFill.style.width = tpct + "%";
   document.getElementById("total-txt-" + slug(person)).textContent = totalDone + " / " + totalAll + " · " + tpct + "%";
 }
 
-// ------- Запуск синхронизации -------
+// ------- Добавление и удаление вкладок -------
+const overlay = document.getElementById("add-overlay");
+const nameInput = document.getElementById("add-name");
+const swatchesEl = document.getElementById("add-swatches");
+const errEl = document.getElementById("add-err");
+let chosenPalette = 4;
+
+function openAddDialog() {
+  errEl.textContent = "";
+  nameInput.value = "";
+  chosenPalette = 4;
+  swatchesEl.innerHTML = "";
+  PALETTES.forEach((pal, i) => {
+    const s = document.createElement("button");
+    s.className = "swatch" + (i === chosenPalette ? " selected" : "");
+    s.style.background = pal.accent;
+    s.addEventListener("click", () => {
+      chosenPalette = i;
+      swatchesEl.querySelectorAll(".swatch").forEach((el, j) => el.classList.toggle("selected", j === i));
+    });
+    swatchesEl.appendChild(s);
+  });
+  overlay.classList.add("open");
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+document.getElementById("add-cancel").addEventListener("click", () => overlay.classList.remove("open"));
+overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+
+document.getElementById("add-ok").addEventListener("click", async () => {
+  const name = nameInput.value.trim().replace(/\|/g, " ");
+  if (!name) { errEl.textContent = "Введите имя"; return; }
+  const exists = allPeople().some(p => p.name.toLowerCase() === name.toLowerCase());
+  if (exists) { errEl.textContent = "Такая вкладка уже есть"; return; }
+  const id = "p" + Date.now();
+  const entry = { name: name, palette: chosenPalette, created: Date.now() };
+  try {
+    const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "PUT", body: JSON.stringify(entry) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    errEl.textContent = "Нет сети — попробуйте позже";
+    return;
+  }
+  customPeople[id] = entry;
+  peopleSig = JSON.stringify(customPeople);
+  saveLocal();
+  overlay.classList.remove("open");
+  buildUI();
+  activateTab(name);
+  setSync(MSG_OK, true);
+});
+
+nameInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("add-ok").click(); });
+
+async function removePerson(id, name) {
+  if (!confirm("Удалить вкладку «" + name + "» вместе со всеми отметками? Это увидят все.")) return;
+  try {
+    const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "DELETE" });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    alert("Нет сети — попробуйте позже");
+    return;
+  }
+  // стираем отметки этого человека
+  Object.keys(state).forEach(k => {
+    if (k.indexOf(name + "|") === 0) { delete state[k]; pending[k] = null; }
+  });
+  delete customPeople[id];
+  peopleSig = JSON.stringify(customPeople);
+  localStorage.setItem(ACTIVE_KEY, allPeople()[0].name);
+  saveLocal();
+  buildUI();
+  flush();
+}
+
+// ------- Запуск -------
+buildUI();
 pull();
 setInterval(pull, 20000);
 window.addEventListener("online", pull);
