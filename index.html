@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#fdf7fa">
+<title>Вейкборд — прогресс тренировок</title>
+<style>
+  :root {
+    --bg: #f7f6fb;
+    --card: #ffffff;
+    --card-head: #fbfaff;
+    --text: #3a3550;
+    --muted: #9a94ad;
+    --track: #eeecf5;
+    --shadow: 0 2px 10px rgba(90, 80, 140, .08);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #fdf7fa 0%, var(--bg) 220px);
+    color: var(--text);
+    padding: 20px 14px calc(48px + env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 26px;
+    margin: 4px 0 20px;
+    letter-spacing: .3px;
+    color: #4a4266;
+  }
+
+  /* Вкладки */
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 22px;
+    position: sticky;
+    top: 8px;
+    z-index: 10;
+  }
+  .tab-btn {
+    padding: 12px 6px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--p-dark);
+    background: var(--p-soft);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: var(--shadow);
+    min-height: 46px;
+  }
+  .tab-btn.active {
+    color: #fff;
+    background: var(--p-accent);
+    border-color: var(--p-accent);
+    box-shadow: 0 4px 14px var(--p-glow);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Общий прогресс человека */
+  .total {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--p-accent);
+  }
+  .total .label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .total .label b { color: var(--text); font-size: 16px; }
+
+  /* Блок курса */
+  details.block {
+    background: var(--card);
+    border-radius: 16px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  details.block > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    background: var(--card-head);
+  }
+  details.block > summary::-webkit-details-marker { display: none; }
+  .block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .block-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #4a4266;
+  }
+  .block-title .arrow {
+    display: inline-block;
+    transition: transform .2s;
+    margin-right: 8px;
+    color: var(--p-accent);
+    font-size: 13px;
+  }
+  details[open] .block-title .arrow { transform: rotate(90deg); }
+  .block-count {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Прогресс-бар */
+  .bar {
+    height: 10px;
+    background: var(--track);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .bar .fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--p-accent), var(--p-accent2));
+    border-radius: 6px;
+    transition: width .3s ease;
+  }
+  .bar.big { height: 14px; border-radius: 8px; }
+
+  .block-body { padding: 6px 10px 14px; }
+  .group-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--p-dark);
+    margin: 16px 8px 6px;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 10px 8px 4px;
+    font-style: italic;
+  }
+
+  /* Упражнение */
+  label.ex {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .15s;
+    font-size: 15px;
+    min-height: 44px;
+  }
+  @media (hover: hover) {
+    label.ex:hover { background: var(--p-soft); }
+  }
+  label.ex:active { background: var(--p-soft); }
+  label.ex input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    margin: 0;
+    border: 2px solid #cfcadd;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    position: relative;
+    transition: all .15s;
+  }
+  label.ex input:checked {
+    background: var(--p-accent);
+    border-color: var(--p-accent);
+  }
+  label.ex input:checked::after {
+    content: "✓";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  label.ex input:checked + span {
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  /* Мобильная адаптация */
+  @media (max-width: 600px) {
+    body { padding-left: 10px; padding-right: 10px; }
+    h1 { font-size: 20px; margin-bottom: 14px; }
+    .tabs { grid-template-columns: repeat(2, 1fr); }
+    .tab-btn { font-size: 15px; padding: 12px 4px; }
+    .block-title { font-size: 16px; }
+    .block-count { font-size: 11px; }
+    .block-body { padding: 4px 6px 12px; }
+    label.ex { font-size: 14px; padding: 12px 8px; }
+    .total { padding: 14px 14px; }
+  }
+  @media (max-width: 360px) {
+    .tab-btn { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏄‍♀️ Вейкборд — прогресс тренировок</h1>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<script>
+// У каждого — свои цвета: Лена и Яся розовые, Саша голубой, Алиса сиреневая
+const PEOPLE = [
+  { name: "Лена",  accent: "#ec6a9f", accent2: "#f9a8c9", soft: "#fdeef4", dark: "#c14479", glow: "rgba(236,106,159,.35)" },
+  { name: "Яся",   accent: "#f4749b", accent2: "#ffb3c6", soft: "#ffeff3", dark: "#d14f7c", glow: "rgba(244,116,155,.35)" },
+  { name: "Саша",  accent: "#4da3e0", accent2: "#8ecdf5", soft: "#eaf5fd", dark: "#2d7cb8", glow: "rgba(77,163,224,.35)" },
+  { name: "Алиса", accent: "#a577d8", accent2: "#cdaef0", soft: "#f5eefc", dark: "#7e51b3", glow: "rgba(165,119,216,.35)" }
+];
+
+const COURSE = [
+  {
+    id: "base",
+    title: "База",
+    groups: [
+      { name: "Первые шаги в вейкбординг", items: ["Старт из воды","Катание по прямой","Катание с одной рукой","Змейка","Катание другой ногой"] },
+      { name: "Развороты на лебёдке", items: ["Heelside разворот","Heelside разворот со сменой ног","Heelside разворот со скольжением доска поперёк","Toeside разворот"] },
+      { name: "Вращение вокруг себя на воде", items: ["Surface fs 360","Surface bs 360"] },
+      { name: "Скольжения по воде поперёк", items: ["Стойка доска поперёк","Tailslide","Noseslide","Лодочка","Казак"] },
+      { name: "Старты на лебёдке", items: ["Старт сидя с пирса","Старт стоя с пирса","Старт соскальзывая","Нолли-старт"] },
+      { name: "Прыжки Ollie", items: ["Ollie","Ollie fs 180","Ollie bs 180 без перехвата","Ollie bs 180 с перехватом","Ollie fs 360 без перехвата","Ollie fs 360 с перехватом","Ollie bs 360"] },
+      { name: "Прогрессивное катание", items: ["Агрессивная змейка","Скольжение спиной вперёд","Езда в blind"] },
+      { name: "Другие фишечные элементы", items: ["Tailpress","Taildrag","Handdrag","Ручка между ног","Кинг-Конг"] },
+      { name: "Вращение вокруг себя без перехвата", items: ["Surface fs 360 ole","Surface bs 360 ole"] },
+      { name: "Удары по воде", items: ["BonK tail","BonK nose"] },
+      { name: "Комбинации элементов на разворотах", items: ["Tail spray на разворотах","Surface 360 на развороте","Toeside разворот с перехватом","Кайтерский разворот"] },
+      { name: "Катание на кольце", items: ["Старт на кольце","Повороты (прохождение опор)"] }
+    ]
+  },
+  {
+    id: "raley",
+    title: "Вейк Рейли",
+    note: "Сайт не публикует полный список из 21 урока этого курса — здесь ключевые вехи пути к Рейли.",
+    groups: [
+      { name: "Подготовка", items: ["Уверенный Heelside разворот","Высокое Ollie"] },
+      { name: "Путь к чёткому Рейли", items: ["Рейли — первые попытки","Рейли — стабильно, чётко, уверенно (10 из 10)"] }
+    ]
+  },
+  {
+    id: "tricks",
+    title: "Вейк Трюки",
+    groups: [
+      { name: "Базовые трюки", items: ["Backroll","Frontflip","S-bend","Hinterberger"] },
+      { name: "Базовые + Fs 180", items: ["Krypt","Backroll to revert","Frontflip to revert","S-bend to revert (Vulcan)","Hinterberger to revert"] },
+      { name: "Базовые + Bs 180", items: ["Raley to blind","Backroll to blind","S-bend to blind","Frontflip to blind"] },
+      { name: "Дополнительно", items: ["Krypt с грэбом","Рейли в blind (blind judge)"] },
+      { name: "Прогрессируем дальше", items: ["Рейли с грэбом","Double S-bend","Toeside Рейли"] },
+      { name: "Wheep-трюки", items: ["Bel air","Egg roll"] }
+    ]
+  },
+  {
+    id: "kicker",
+    title: "Вейк Кикер",
+    groups: [
+      { name: "Прямые прыжки", items: ["Heelside прямой прыжок","Toeside прямой прыжок"] },
+      { name: "Прыжки с вращениями frontside", items: ["Fs 180","Fs 360 с перехватом","Fs 360 без перехвата","Fs 540","Fs 720"] },
+      { name: "Прыжки с вращениями backside", items: ["Bs 180 с перехватом","Bs 180 без перехвата","Bs 360","Bs 540"] },
+      { name: "Rewind'ы", items: ["Fs shifty","Bs shifty","Fs Shifty Bs 180","Bs Shifty Fs 180","Fs 180 rewind 180","Bs 180 rewind 180"] },
+      { name: "Базовые грэбы", items: ["Indy","Mute","Stalefish","Melon","Tail","Nose"] },
+      { name: "Прогрессивные грэбы", items: ["Crail","Seatbelt","Method","Roast beef","Stelmasky"] },
+      { name: "Стилевые прыжки с разгибанием ног", items: ["Tailbone","Nosebone","Stiffy"] },
+      { name: "Комбинации грэбов без перехвата", items: ["Stailfish + Indy","Melon + Mute","Nose + Mute","Nose + Melon","Tail + Indy","Tail + Stailfish"] },
+      { name: "Комбинации грэбов с перехватом", items: ["Mute + Indy","Melon + Stailfish","Nose + Tail"] },
+      { name: "Вращения с грэбами", items: ["Fs 360 + Mute","Fs 360 + Indy","Bs 180 + Mute","Bs 360 + Melon"] },
+      { name: "Вылеты с касанием кикера рукой", items: ["Handdrag frontside","Handdrag backside"] },
+      { name: "Полёты и глайды с кикера", items: ["Big jump","Рейли","Frontside Glide","Backside glide","Indy glide","Tail glide","Method glide"] },
+      { name: "Передние сальта", items: ["Frontroll","Mexican","Scarecrow"] },
+      { name: "Задние сальта", items: ["Tantrum","Ts Roll","Halfcab"] }
+    ]
+  },
+  {
+    id: "jib",
+    title: "Вейк Джиб",
+    groups: [
+      { name: "Первые скольжения на слайдере", items: ["Heelside 50/50","Toeside 50/50"] },
+      { name: "Скольжения доской поперёк", items: ["Frontslide","Tailslide","Noseslide","Backslide"] },
+      { name: "Сходы с вращением на 180", items: ["Fs 180 out","Bs 180 out с перехватом","Bs 180 out to blind"] },
+      { name: "Заходы с вращением на 180", items: ["Fs 180 in","Bs 180 in to blind","Bs 180 in с перехватом"] },
+      { name: "Комбинации заходов и сходов с вращениями на 180", items: ["Fs 180 in — Pretzel 180 out","Fs 180 in — Danish 180 out","Bs 180 in — Pretzel 180 out","Bs 180 in — Danish 180 out"] },
+      { name: "Сходы с вращением на 270", items: ["Frontslide — Pretzel 270 out","Frontslide — Danish 270 out","Backslide — Pretzel 270 out","Backslide — Danish 270 out"] },
+      { name: "Комбинации захода и сходов с вращением на 270", items: ["Fs 270 in","Fs 270 in — Pretzel 270 out","Fs 270 in — Danish 270 out"] },
+      { name: "Сходы с вращением на 360", items: ["Frontside 360 out","Backside 360 out"] },
+      { name: "Переходы при скольжении", items: ["Nosepress — Tailpress","Tailpress — Nosepress","Noseslide — Tailslide","Казак"] },
+      { name: "Переходы на 180 при скольжении", items: ["50/50 — Fs 180","50/50 — Bs 180","Tailpress — Fs 180 Tailpress","Frontslide — Pretzel Backslide","Frontslide — Danish Backslide","Backslide — Pretzel Frontslide","Backslide — Danish Frontslide"] },
+      { name: "Вращения при скольжении и жопслайд", items: ["Surface fs 360","Surface bs 360","Жопслайд"] },
+      { name: "Прогрессивные заходы и сходы", items: ["Заход с ollie","Заход с ollie сбоку heelside","Заход с ollie сбоку toeside","Заход gap","Сход Fake blind"] },
+      { name: "Другие сходы", items: ["Nollie out"] },
+      { name: "Удары доской", items: ["Bonk Tail","Bonk Nose"] },
+      { name: "Скольжения на кантах доски", items: ["Mr. Jackson","Ms. Jackson","Wheelie"] },
+      { name: "Прогрессивные скольжения на носе и хвосте доски", items: ["Noseblunt","Tailblunt"] },
+      { name: "Скольжение по сложным фигурам", items: ["Узкий слайдер (линейка)","Круглая фигура (труба)","Меняющая наклон резко (rooftop)","Меняющая наклон плавно (слон)","Трансфер с заезда (funbox)","Трансферный переход (rail-to-rail)","Бассейн"] }
+    ]
+  }
+];
+
+const STORAGE_KEY = "wake-progress-v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function exKey(person, blockId, group, item) {
+  return person + "|" + blockId + "|" + group + "|" + item;
+}
+
+function slug(s) {
+  return s.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "-");
+}
+
+function applyTheme(el, p) {
+  el.style.setProperty("--p-accent", p.accent);
+  el.style.setProperty("--p-accent2", p.accent2);
+  el.style.setProperty("--p-soft", p.soft);
+  el.style.setProperty("--p-dark", p.dark);
+  el.style.setProperty("--p-glow", p.glow);
+}
+
+// Рендер вкладок и панелей
+const tabsEl = document.getElementById("tabs");
+const panelsEl = document.getElementById("panels");
+
+PEOPLE.forEach((p, pi) => {
+  const person = p.name;
+
+  const btn = document.createElement("button");
+  btn.className = "tab-btn" + (pi === 0 ? " active" : "");
+  btn.textContent = person;
+  applyTheme(btn, p);
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(el => el.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + slug(person)).classList.add("active");
+  });
+  tabsEl.appendChild(btn);
+
+  const panel = document.createElement("div");
+  panel.className = "tab-panel" + (pi === 0 ? " active" : "");
+  panel.id = "panel-" + slug(person);
+  applyTheme(panel, p);
+
+  // общий прогресс
+  const total = document.createElement("div");
+  total.className = "total";
+  total.innerHTML =
+    '<div class="label"><b>Общий прогресс — ' + person + '</b><span id="total-txt-' + slug(person) + '"></span></div>' +
+    '<div class="bar big"><div class="fill" id="total-fill-' + slug(person) + '"></div></div>';
+  panel.appendChild(total);
+
+  COURSE.forEach(block => {
+    const det = document.createElement("details");
+    det.className = "block";
+
+    const summary = document.createElement("summary");
+    summary.innerHTML =
+      '<div class="block-head">' +
+        '<div class="block-title"><span class="arrow">▶</span>' + block.title + '</div>' +
+        '<div class="block-count" id="count-' + slug(person) + '-' + block.id + '"></div>' +
+      '</div>' +
+      '<div class="bar"><div class="fill" id="fill-' + slug(person) + '-' + block.id + '"></div></div>';
+    det.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "block-body";
+
+    if (block.note) {
+      const n = document.createElement("div");
+      n.className = "note";
+      n.textContent = block.note;
+      body.appendChild(n);
+    }
+
+    block.groups.forEach(group => {
+      const gt = document.createElement("div");
+      gt.className = "group-title";
+      gt.textContent = group.name;
+      body.appendChild(gt);
+
+      group.items.forEach(item => {
+        const key = exKey(person, block.id, group.name, item);
+        const label = document.createElement("label");
+        label.className = "ex";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!state[key];
+        cb.addEventListener("change", () => {
+          if (cb.checked) state[key] = true; else delete state[key];
+          saveState();
+          updateProgress(person);
+        });
+        const span = document.createElement("span");
+        span.textContent = item;
+        label.appendChild(cb);
+        label.appendChild(span);
+        body.appendChild(label);
+      });
+    });
+
+    det.appendChild(body);
+    panel.appendChild(det);
+  });
+
+  panelsEl.appendChild(panel);
+  updateProgress(person);
+});
+
+function updateProgress(person) {
+  let totalDone = 0, totalAll = 0;
+  COURSE.forEach(block => {
+    let done = 0, all = 0;
+    block.groups.forEach(group => {
+      group.items.forEach(item => {
+        all++;
+        if (state[exKey(person, block.id, group.name, item)]) done++;
+      });
+    });
+    totalDone += done;
+    totalAll += all;
+    const pct = all ? Math.round(done / all * 100) : 0;
+    document.getElementById("fill-" + slug(person) + "-" + block.id).style.width = pct + "%";
+    document.getElementById("count-" + slug(person) + "-" + block.id).textContent = done + " / " + all + " · " + pct + "%";
+  });
+  const tpct = totalAll ? Math.round(totalDone / totalAll * 100) : 0;
+  document.getElementById("total-fill-" + slug(person)).style.width = tpct + "%";
+  document.getElementById("total-txt-" + slug(person)).textContent = totalDone + " / " + totalAll + " · " + tpct + "%";
+}
+</script>
+</body>
+</html>
