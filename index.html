@@ -36,10 +36,38 @@
     text-align: center;
     font-size: 12px;
     color: var(--muted);
-    margin: 0 0 16px;
+    margin: 0 0 4px;
     min-height: 15px;
   }
   .sync.ok { color: #6cb98a; }
+
+  .who {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px;
+    min-height: 20px;
+  }
+  .who button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a4266;
+    background: #fff;
+    border: 2px solid #e2ddef;
+    border-radius: 10px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .who .logout {
+    background: none;
+    border: none;
+    font-weight: 400;
+    color: var(--muted);
+    text-decoration: underline;
+    padding: 6px 4px;
+  }
+  .who b { color: #4a4266; }
 
   /* Вкладки */
   .tabs {
@@ -241,7 +269,33 @@
     padding: 10px;
   }
 
-  /* Модальное окно добавления */
+  /* Раздел PRO */
+  .pro-section { margin-top: 26px; }
+  .pro-lock {
+    background: linear-gradient(135deg, #46406b, #6b5a94);
+    border-radius: 16px;
+    padding: 26px 20px;
+    text-align: center;
+    color: #fff;
+    box-shadow: var(--shadow);
+  }
+  .pro-lock-icon { font-size: 34px; margin-bottom: 6px; }
+  .pro-lock-title { font-size: 22px; font-weight: 800; letter-spacing: 3px; color: #f0d48a; margin-bottom: 8px; }
+  .pro-lock-note { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.5; margin-bottom: 14px; }
+  .pro-lock-note b { color: #f0d48a; }
+  .pro-lock-bar { background: rgba(255,255,255,.18); max-width: 320px; margin: 0 auto; }
+  .pro-lock-bar .fill { background: linear-gradient(90deg, #f0d48a, #ffec9e); }
+  .pro-open-head {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #b8963f;
+    margin: 4px 0 14px;
+  }
+  .pro-placeholder { text-align: center; padding: 10px 0 20px; }
+
+  /* Модальные окна */
   .overlay {
     display: none;
     position: fixed;
@@ -262,7 +316,7 @@
     box-shadow: 0 12px 40px rgba(60, 50, 90, .25);
   }
   .dialog h2 { margin: 0 0 14px; font-size: 18px; color: #4a4266; text-align: center; }
-  .dialog input[type="text"] {
+  .dialog input[type="text"], .dialog input[type="password"] {
     width: 100%;
     font-family: inherit;
     font-size: 16px;
@@ -272,7 +326,7 @@
     outline: none;
     color: var(--text);
   }
-  .dialog input[type="text"]:focus { border-color: #b7aee0; }
+  .dialog input:focus { border-color: #b7aee0; }
   .swatches {
     display: flex;
     flex-wrap: wrap;
@@ -308,32 +362,28 @@
   .btn-cancel { background: #f0edf7; color: var(--muted); }
   .btn-ok { background: #4a4266; color: #fff; }
   .dialog .err { color: #d14f4f; font-size: 13px; min-height: 16px; margin: 8px 0 0; text-align: center; }
+  .dialog .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; text-align: center; line-height: 1.4; }
 
-  /* Раздел PRO */
-  .pro-section { margin-top: 26px; }
-  .pro-lock {
-    background: linear-gradient(135deg, #46406b, #6b5a94);
-    border-radius: 16px;
-    padding: 26px 20px;
-    text-align: center;
-    color: #fff;
-    box-shadow: var(--shadow);
+  .id-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
   }
-  .pro-lock-icon { font-size: 34px; margin-bottom: 6px; }
-  .pro-lock-title { font-size: 22px; font-weight: 800; letter-spacing: 3px; color: #f0d48a; margin-bottom: 8px; }
-  .pro-lock-note { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.5; margin-bottom: 14px; }
-  .pro-lock-note b { color: #f0d48a; }
-  .pro-lock-bar { background: rgba(255,255,255,.18); max-width: 320px; margin: 0 auto; }
-  .pro-lock-bar .fill { background: linear-gradient(90deg, #f0d48a, #ffec9e); }
-  .pro-open-head {
-    text-align: center;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: #b8963f;
-    margin: 4px 0 14px;
+  .id-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 2px solid #e2ddef;
+    background: #fff;
+    color: #4a4266;
+    cursor: pointer;
+    min-height: 42px;
   }
-  .pro-placeholder { text-align: center; padding: 10px 0 20px; }
+  .id-btn.selected { background: #4a4266; border-color: #4a4266; color: #fff; }
 
   /* Мобильная адаптация */
   @media (max-width: 600px) {
@@ -356,6 +406,7 @@
 <div class="wrap">
   <h1>🏄‍♀️ Wake Progress</h1>
   <div class="sync" id="sync-status"></div>
+  <div class="who" id="who-bar"></div>
 
   <div class="tabs" id="tabs"></div>
   <div id="panels"></div>
@@ -370,6 +421,20 @@
     <div class="dialog-btns">
       <button class="btn-cancel" id="add-cancel">Отмена</button>
       <button class="btn-ok" id="add-ok">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="login-overlay">
+  <div class="dialog">
+    <h2>Кто вы?</h2>
+    <div class="id-list" id="id-list"></div>
+    <input type="password" id="login-pin" placeholder="PIN-код" maxlength="20" autocomplete="off">
+    <div class="hint" id="login-hint"></div>
+    <div class="err" id="login-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="login-cancel">Отмена</button>
+      <button class="btn-ok" id="login-ok">Войти</button>
     </div>
   </div>
 </div>
@@ -395,6 +460,8 @@ const BASE_PEOPLE = [
   { name: "Саша",  palette: 2 },
   { name: "Алиса", palette: 3 }
 ];
+
+const COACH = "__coach";
 
 const COURSE = [
   {
@@ -491,13 +558,21 @@ const STORAGE_KEY = "wake-progress-v1";
 const PENDING_KEY = "wake-progress-pending-v1";
 const PEOPLE_KEY = "wake-progress-people-v1";
 const ACTIVE_KEY = "wake-progress-active-tab";
+const ID_KEY = "wake-progress-identity-v1";
 
 let state = {};        // текущие отметки: ключ -> true
 let pending = {};      // не отправленные в облако изменения: ключ -> true | null
 let customPeople = {}; // добавленные вкладки: id -> {name, palette, created}
+let pins = {};         // хеши PIN-кодов: закодированное имя -> hash
+let identity = null;   // кто вошёл на этом устройстве: имя или "__coach"
+let identityHash = null;
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
 try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
 try { customPeople = JSON.parse(localStorage.getItem(PEOPLE_KEY)) || {}; } catch (e) { customPeople = {}; }
+try {
+  const id = JSON.parse(localStorage.getItem(ID_KEY));
+  if (id && id.name && id.hash) { identity = id.name; identityHash = id.hash; }
+} catch (e) {}
 
 let checkboxRefs = {}; // ключ -> элемент чекбокса
 
@@ -507,8 +582,26 @@ function saveLocal() {
   localStorage.setItem(PEOPLE_KEY, JSON.stringify(customPeople));
 }
 
+function saveIdentity() {
+  if (identity) localStorage.setItem(ID_KEY, JSON.stringify({ name: identity, hash: identityHash }));
+  else localStorage.removeItem(ID_KEY);
+}
+
 // Firebase запрещает в ключах символы . $ # [ ] / — кодируем
 function encKey(k) { return encodeURIComponent(k).replace(/\./g, "%2E"); }
+
+async function sha256(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function canEdit(person) {
+  return identity === COACH || identity === person;
+}
+
+function displayIdentity() {
+  return identity === COACH ? "Тренер 🎓" : identity;
+}
 
 const syncEl = document.getElementById("sync-status");
 function setSync(text, ok) {
@@ -550,6 +643,18 @@ async function pull() {
     const r = await fetch(DB_URL + "/.json");
     if (!r.ok) throw new Error(r.status);
     const data = (await r.json()) || {};
+
+    // PIN-коды
+    pins = data.pins || {};
+    // если PIN сменили или сбросили — разлогиниваем это устройство
+    if (identity) {
+      const stored = pins[encKey(identity)];
+      if (!stored || stored !== identityHash) {
+        identity = null; identityHash = null;
+        saveIdentity();
+        renderWho();
+      }
+    }
 
     // список вкладок
     const remotePeople = data.people || {};
@@ -605,6 +710,35 @@ function applyTheme(el, pal) {
   el.style.setProperty("--p-glow", pal.glow);
 }
 
+// ------- Панель «кто вы» -------
+const whoBar = document.getElementById("who-bar");
+function renderWho() {
+  whoBar.innerHTML = "";
+  if (identity) {
+    const span = document.createElement("span");
+    span.innerHTML = "Вы: <b>" + displayIdentity() + "</b> ";
+    whoBar.appendChild(span);
+    const out = document.createElement("button");
+    out.className = "logout";
+    out.textContent = "выйти";
+    out.addEventListener("click", () => {
+      identity = null; identityHash = null;
+      saveIdentity();
+      renderWho();
+      buildUI();
+    });
+    whoBar.appendChild(out);
+  } else {
+    const btn = document.createElement("button");
+    btn.textContent = "Войти";
+    btn.addEventListener("click", openLoginDialog);
+    whoBar.appendChild(btn);
+    const hint = document.createElement("span");
+    hint.textContent = " — без входа только просмотр";
+    whoBar.appendChild(hint);
+  }
+}
+
 // ------- Рендер вкладок и панелей -------
 const tabsEl = document.getElementById("tabs");
 const panelsEl = document.getElementById("panels");
@@ -647,6 +781,12 @@ function makeBlock(person, block) {
       cb.checked = !!state[key];
       checkboxRefs[key] = cb;
       cb.addEventListener("change", () => {
+        if (!canEdit(person)) {
+          cb.checked = !!state[key];
+          if (identity) alert("Отмечать упражнения во вкладке «" + person + "» может только " + person + " или тренер.");
+          else { alert("Сначала войдите — кнопка «Войти» под заголовком."); openLoginDialog(); }
+          return;
+        }
         if (cb.checked) { state[key] = true; pending[key] = true; }
         else { delete state[key]; pending[key] = null; }
         saveLocal();
@@ -743,8 +883,8 @@ function buildUI() {
     pro.appendChild(proContent);
     panel.appendChild(pro);
 
-    // удаление — только для добавленных вкладок
-    if (p.id) {
+    // удаление — только для добавленных вкладок; доступно тренеру и владельцу вкладки
+    if (p.id && (identity === COACH || identity === person)) {
       const rm = document.createElement("button");
       rm.className = "remove-person";
       rm.textContent = "Удалить вкладку «" + person + "»";
@@ -761,7 +901,10 @@ function buildUI() {
   add.className = "tab-btn add";
   add.textContent = "+";
   add.title = "Добавить вкладку";
-  add.addEventListener("click", openAddDialog);
+  add.addEventListener("click", () => {
+    if (!identity) { alert("Добавлять вкладки могут только вошедшие. Нажмите «Войти» под заголовком."); openLoginDialog(); return; }
+    openAddDialog();
+  });
   tabsEl.appendChild(add);
 }
 
@@ -813,6 +956,72 @@ function updateProgress(person) {
     document.getElementById("pro-lockfill-" + slug(person)).style.width = Math.min(100, Math.round(tpct / PRO_UNLOCK * 100)) + "%";
   }
 }
+
+// ------- Вход по PIN -------
+const loginOverlay = document.getElementById("login-overlay");
+const idListEl = document.getElementById("id-list");
+const pinInput = document.getElementById("login-pin");
+const loginHint = document.getElementById("login-hint");
+const loginErr = document.getElementById("login-err");
+let chosenIdentity = null;
+
+function openLoginDialog() {
+  chosenIdentity = null;
+  pinInput.value = "";
+  loginErr.textContent = "";
+  loginHint.textContent = "Выберите, кто вы, и введите PIN.";
+  idListEl.innerHTML = "";
+  const ids = allPeople().map(p => p.name).concat([COACH]);
+  ids.forEach(name => {
+    const b = document.createElement("button");
+    b.className = "id-btn";
+    b.textContent = name === COACH ? "Тренер 🎓" : name;
+    b.addEventListener("click", () => {
+      chosenIdentity = name;
+      idListEl.querySelectorAll(".id-btn").forEach(el => el.classList.toggle("selected", el === b));
+      loginErr.textContent = "";
+      const has = !!pins[encKey(name)];
+      loginHint.textContent = has
+        ? "Введите PIN."
+        : "Первый вход: придумайте PIN — он сохранится за " + (name === COACH ? "тренером" : "именем «" + name + "»") + ".";
+      pinInput.focus();
+    });
+    idListEl.appendChild(b);
+  });
+  loginOverlay.classList.add("open");
+}
+
+document.getElementById("login-cancel").addEventListener("click", () => loginOverlay.classList.remove("open"));
+loginOverlay.addEventListener("click", e => { if (e.target === loginOverlay) loginOverlay.classList.remove("open"); });
+pinInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("login-ok").click(); });
+
+document.getElementById("login-ok").addEventListener("click", async () => {
+  if (!chosenIdentity) { loginErr.textContent = "Выберите, кто вы"; return; }
+  const pin = pinInput.value.trim();
+  if (pin.length < 3) { loginErr.textContent = "PIN — минимум 3 символа"; return; }
+  const hash = await sha256(chosenIdentity + "|" + pin);
+  const ek = encKey(chosenIdentity);
+  const stored = pins[ek];
+  if (stored) {
+    if (stored !== hash) { loginErr.textContent = "Неверный PIN"; return; }
+  } else {
+    // первый вход — сохраняем PIN
+    try {
+      const r = await fetch(DB_URL + "/pins/" + ek + ".json", { method: "PUT", body: JSON.stringify(hash) });
+      if (!r.ok) throw new Error(r.status);
+      pins[ek] = hash;
+    } catch (e) {
+      loginErr.textContent = "Нет сети — попробуйте позже";
+      return;
+    }
+  }
+  identity = chosenIdentity;
+  identityHash = hash;
+  saveIdentity();
+  loginOverlay.classList.remove("open");
+  renderWho();
+  buildUI();
+});
 
 // ------- Добавление и удаление вкладок -------
 const overlay = document.getElementById("add-overlay");
@@ -873,6 +1082,8 @@ async function removePerson(id, name) {
   try {
     const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "DELETE" });
     if (!r.ok) throw new Error(r.status);
+    // подчищаем PIN удалённого имени, чтобы имя можно было завести заново
+    await fetch(DB_URL + "/pins/" + encKey(name) + ".json", { method: "DELETE" });
   } catch (e) {
     alert("Нет сети — попробуйте позже");
     return;
@@ -890,6 +1101,7 @@ async function removePerson(id, name) {
 }
 
 // ------- Запуск -------
+renderWho();
 buildUI();
 pull();
 setInterval(pull, 20000);
