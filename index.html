@@ -1040,7 +1040,8 @@ document.getElementById("video-ok").addEventListener("click", async () => {
   try { new URL(u); } catch (e) { videoErr.textContent = "Это не похоже на ссылку"; return; }
   const ek = encKey(videoLinkKey);
   try {
-    const r = await fetch(DB_URL + "/links/" + ek + ".json", { method: "PUT", body: JSON.stringify(u) });
+    const body = {}; body[ek] = u;
+    const r = await fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
   } catch (e) {
     videoErr.textContent = "Нет сети — попробуйте позже";
@@ -1058,7 +1059,8 @@ videoRemove.addEventListener("click", async () => {
   if (!videoLinkKey) return;
   const ek = encKey(videoLinkKey);
   try {
-    const r = await fetch(DB_URL + "/links/" + ek + ".json", { method: "DELETE" });
+    const body = {}; body[ek] = null;
+    const r = await fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
   } catch (e) {
     videoErr.textContent = "Нет сети — попробуйте позже";
@@ -1136,7 +1138,8 @@ async function removeTrick(id, name) {
   // и его видео-ссылку
   const lk = encKey(t.block + "|" + CUSTOM_GROUP + "|" + t.name);
   if (links[lk]) {
-    fetch(DB_URL + "/links/" + lk + ".json", { method: "DELETE" }).catch(() => {});
+    const body = {}; body[lk] = null;
+    fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) }).catch(() => {});
     delete links[lk];
     linksSig = JSON.stringify(links);
   }
