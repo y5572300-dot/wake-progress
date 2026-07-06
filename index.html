@@ -248,6 +248,35 @@
   .rm-trick:active { color: #c74d4d; }
   @media (hover: hover) { .rm-trick:hover { color: #c74d4d; } }
 
+  /* Кнопка видео у трюка */
+  .vid {
+    background: none;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 8px;
+    color: #d8d3e6;
+  }
+  .vid.has { color: #e53935; }
+  .vid:active { color: #e53935; }
+  @media (hover: hover) { .vid:hover { color: #e53935; } }
+
+  .watch-btn {
+    display: block;
+    text-align: center;
+    background: #e53935;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px;
+    border-radius: 12px;
+    text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .btn-remove { background: #fdeeee; color: #c74d4d; }
+
   /* Кнопка добавления трюка */
   .add-trick {
     display: flex;
@@ -431,6 +460,20 @@
   </div>
 </div>
 
+<div class="overlay" id="video-overlay">
+  <div class="dialog">
+    <h2 id="video-title">Видео</h2>
+    <a class="watch-btn" id="video-watch" target="_blank" rel="noopener">▶ Открыть видео</a>
+    <input type="text" id="video-url" placeholder="Ссылка на YouTube">
+    <div class="err" id="video-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="video-cancel">Отмена</button>
+      <button class="btn-remove" id="video-remove">Убрать</button>
+      <button class="btn-ok" id="video-ok">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="trick-overlay">
   <div class="dialog">
     <h2>Новый трюк</h2>
@@ -562,16 +605,19 @@ const STORAGE_KEY = "wake-progress-v1";
 const PENDING_KEY = "wake-progress-pending-v1";
 const PEOPLE_KEY = "wake-progress-people-v1";
 const TRICKS_KEY = "wake-progress-tricks-v1";
+const LINKS_KEY = "wake-progress-links-v1";
 const ACTIVE_KEY = "wake-progress-active-tab";
 
 let state = {};        // текущие отметки: ключ -> true
 let pending = {};      // не отправленные в облако изменения: ключ -> true | null
 let customPeople = {}; // добавленные вкладки: id -> {name, palette, created}
 let customTricks = {}; // добавленные трюки: id -> {block, name, created}
+let links = {};        // видео к трюкам: закодированный ключ (блок|группа|трюк) -> url
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
 try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
 try { customPeople = JSON.parse(localStorage.getItem(PEOPLE_KEY)) || {}; } catch (e) { customPeople = {}; }
 try { customTricks = JSON.parse(localStorage.getItem(TRICKS_KEY)) || {}; } catch (e) { customTricks = {}; }
+try { links = JSON.parse(localStorage.getItem(LINKS_KEY)) || {}; } catch (e) { links = {}; }
 
 let checkboxRefs = {}; // ключ -> элемент чекбокса
 
@@ -580,6 +626,7 @@ function saveLocal() {
   localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
   localStorage.setItem(PEOPLE_KEY, JSON.stringify(customPeople));
   localStorage.setItem(TRICKS_KEY, JSON.stringify(customTricks));
+  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
 }
 
 // Firebase запрещает в ключах символы . $ # [ ] / — кодируем
@@ -627,6 +674,7 @@ async function flush() {
 
 let peopleSig = JSON.stringify(customPeople);
 let tricksSig = JSON.stringify(customTricks);
+let linksSig = JSON.stringify(links);
 
 async function pull() {
   try {
@@ -634,16 +682,20 @@ async function pull() {
     if (!r.ok) throw new Error(r.status);
     const data = (await r.json()) || {};
 
-    // список вкладок и добавленные трюки
+    // список вкладок, добавленные трюки и видео-ссылки
     const remotePeople = data.people || {};
     const remoteTricks = data.tricks || {};
+    const remoteLinks = data.links || {};
     const pSig = JSON.stringify(remotePeople);
     const tSig = JSON.stringify(remoteTricks);
-    if (pSig !== peopleSig || tSig !== tricksSig) {
+    const lSig = JSON.stringify(remoteLinks);
+    if (pSig !== peopleSig || tSig !== tricksSig || lSig !== linksSig) {
       peopleSig = pSig;
       tricksSig = tSig;
+      linksSig = lSig;
       customPeople = remotePeople;
       customTricks = remoteTricks;
+      links = remoteLinks;
       buildUI();
     }
 
@@ -696,7 +748,7 @@ function applyTheme(el, pal) {
 const tabsEl = document.getElementById("tabs");
 const panelsEl = document.getElementById("panels");
 
-function makeExerciseRow(person, key, text, trickId) {
+function makeExerciseRow(person, key, text, trickId, linkKey) {
   const label = document.createElement("label");
   label.className = "ex";
   const cb = document.createElement("input");
@@ -714,6 +766,19 @@ function makeExerciseRow(person, key, text, trickId) {
   span.textContent = text;
   label.appendChild(cb);
   label.appendChild(span);
+  if (linkKey) {
+    const hasLink = !!links[encKey(linkKey)];
+    const vid = document.createElement("button");
+    vid.className = "vid" + (hasLink ? " has" : "");
+    vid.textContent = "▶";
+    vid.title = hasLink ? "Смотреть видео" : "Прикрепить видео";
+    vid.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openVideoDialog(linkKey, text);
+    });
+    label.appendChild(vid);
+  }
   if (trickId) {
     const rm = document.createElement("button");
     rm.className = "rm-trick";
@@ -760,7 +825,7 @@ function makeBlock(person, block) {
 
     group.items.forEach(item => {
       const key = exKey(person, block.id, group.name, item);
-      body.appendChild(makeExerciseRow(person, key, item, null));
+      body.appendChild(makeExerciseRow(person, key, item, null, block.id + "|" + group.name + "|" + item));
     });
   });
 
@@ -773,7 +838,7 @@ function makeBlock(person, block) {
     body.appendChild(gt);
     extra.forEach(t => {
       const key = exKey(person, block.id, CUSTOM_GROUP, t.name);
-      body.appendChild(makeExerciseRow(person, key, t.name, t.id));
+      body.appendChild(makeExerciseRow(person, key, t.name, t.id, block.id + "|" + CUSTOM_GROUP + "|" + t.name));
     });
   }
 
@@ -940,6 +1005,72 @@ function updateProgress(person) {
   }
 }
 
+// ------- Видео к трюкам -------
+const videoOverlay = document.getElementById("video-overlay");
+const videoTitle = document.getElementById("video-title");
+const videoWatch = document.getElementById("video-watch");
+const videoUrl = document.getElementById("video-url");
+const videoErr = document.getElementById("video-err");
+const videoRemove = document.getElementById("video-remove");
+let videoLinkKey = null;
+
+function openVideoDialog(linkKey, title) {
+  videoLinkKey = linkKey;
+  const url = links[encKey(linkKey)] || "";
+  videoTitle.textContent = title;
+  videoUrl.value = url;
+  videoErr.textContent = "";
+  videoWatch.style.display = url ? "" : "none";
+  videoWatch.href = url || "#";
+  videoRemove.style.display = url ? "" : "none";
+  videoOverlay.classList.add("open");
+  if (!url) setTimeout(() => videoUrl.focus(), 50);
+}
+
+document.getElementById("video-cancel").addEventListener("click", () => videoOverlay.classList.remove("open"));
+videoOverlay.addEventListener("click", e => { if (e.target === videoOverlay) videoOverlay.classList.remove("open"); });
+videoWatch.addEventListener("click", () => videoOverlay.classList.remove("open"));
+videoUrl.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("video-ok").click(); });
+
+document.getElementById("video-ok").addEventListener("click", async () => {
+  if (!videoLinkKey) return;
+  let u = videoUrl.value.trim();
+  if (!u) { videoErr.textContent = "Вставьте ссылку на видео"; return; }
+  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+  try { new URL(u); } catch (e) { videoErr.textContent = "Это не похоже на ссылку"; return; }
+  const ek = encKey(videoLinkKey);
+  try {
+    const r = await fetch(DB_URL + "/links/" + ek + ".json", { method: "PUT", body: JSON.stringify(u) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    videoErr.textContent = "Нет сети — попробуйте позже";
+    return;
+  }
+  links[ek] = u;
+  linksSig = JSON.stringify(links);
+  saveLocal();
+  videoOverlay.classList.remove("open");
+  buildUI();
+  setSync(MSG_OK, true);
+});
+
+videoRemove.addEventListener("click", async () => {
+  if (!videoLinkKey) return;
+  const ek = encKey(videoLinkKey);
+  try {
+    const r = await fetch(DB_URL + "/links/" + ek + ".json", { method: "DELETE" });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    videoErr.textContent = "Нет сети — попробуйте позже";
+    return;
+  }
+  delete links[ek];
+  linksSig = JSON.stringify(links);
+  saveLocal();
+  videoOverlay.classList.remove("open");
+  buildUI();
+});
+
 // ------- Добавление и удаление трюков -------
 const trickOverlay = document.getElementById("trick-overlay");
 const trickNameInput = document.getElementById("trick-name");
@@ -1002,6 +1133,13 @@ async function removeTrick(id, name) {
     if (state[key]) delete state[key];
     pending[key] = null;
   });
+  // и его видео-ссылку
+  const lk = encKey(t.block + "|" + CUSTOM_GROUP + "|" + t.name);
+  if (links[lk]) {
+    fetch(DB_URL + "/links/" + lk + ".json", { method: "DELETE" }).catch(() => {});
+    delete links[lk];
+    linksSig = JSON.stringify(links);
+  }
   delete customTricks[id];
   tricksSig = JSON.stringify(customTricks);
   saveLocal();
