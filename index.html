@@ -290,6 +290,35 @@
   }
   .btn-remove { background: #fdeeee; color: #c74d4d; }
 
+  /* Кнопка видео-пруфа */
+  .cam {
+    background: none;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px 6px;
+    border-radius: 8px;
+    filter: grayscale(1);
+    opacity: .35;
+  }
+  .cam.has { filter: none; opacity: 1; }
+  .proof-video {
+    width: 100%;
+    max-height: 340px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background: #000;
+  }
+  .file-note {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+  .upload-progress { margin-top: 12px; display: none; }
+  .upload-progress .fill { background: linear-gradient(90deg, #4a4266, #a577d8); }
+
   /* Кнопка добавления трюка */
   .add-trick {
     display: flex;
@@ -487,6 +516,23 @@
   </div>
 </div>
 
+<div class="overlay" id="proof-overlay">
+  <div class="dialog">
+    <h2 id="proof-title">Видео-пруф</h2>
+    <div class="sub" id="proof-sub"></div>
+    <video class="proof-video" id="proof-player" controls playsinline preload="metadata" style="display:none"></video>
+    <input type="file" id="proof-file" accept="video/*" style="display:none">
+    <div class="upload-progress" id="proof-progress"><div class="bar"><div class="fill" id="proof-progress-fill"></div></div></div>
+    <div class="file-note">Ролик до 30 секунд и не больше 50 МБ</div>
+    <div class="err" id="proof-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="proof-cancel">Закрыть</button>
+      <button class="btn-remove" id="proof-remove">Убрать</button>
+      <button class="btn-ok" id="proof-upload">Загрузить</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="trick-overlay">
   <div class="dialog">
     <h2>Новый трюк</h2>
@@ -619,18 +665,27 @@ const PENDING_KEY = "wake-progress-pending-v1";
 const PEOPLE_KEY = "wake-progress-people-v1";
 const TRICKS_KEY = "wake-progress-tricks-v1";
 const LINKS_KEY = "wake-progress-links-v1";
+const PROOFS_KEY = "wake-progress-proofs-v1";
 const ACTIVE_KEY = "wake-progress-active-tab";
+
+// Хранилище видео-пруфов (Cloudinary)
+const CLOUD_NAME = "atq6iq1l";
+const UPLOAD_PRESET = "ml_default";
+const PROOF_MAX_BYTES = 50 * 1024 * 1024; // 50 МБ ≈ 30 секунд съёмки с телефона в 1080p
+const PROOF_MAX_SECONDS = 31;
 
 let state = {};        // текущие отметки: ключ -> true
 let pending = {};      // не отправленные в облако изменения: ключ -> true | null
 let customPeople = {}; // добавленные вкладки: id -> {name, palette, created}
 let customTricks = {}; // добавленные трюки: id -> {block, name, created}
 let links = {};        // видео к трюкам: закодированный ключ (блок|группа|трюк) -> url
+let proofs = {};       // видео-пруфы: закодированный ключ (человек|блок|группа|трюк) -> url
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
 try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
 try { customPeople = JSON.parse(localStorage.getItem(PEOPLE_KEY)) || {}; } catch (e) { customPeople = {}; }
 try { customTricks = JSON.parse(localStorage.getItem(TRICKS_KEY)) || {}; } catch (e) { customTricks = {}; }
 try { links = JSON.parse(localStorage.getItem(LINKS_KEY)) || {}; } catch (e) { links = {}; }
+try { proofs = JSON.parse(localStorage.getItem(PROOFS_KEY)) || {}; } catch (e) { proofs = {}; }
 
 let checkboxRefs = {}; // ключ -> элемент чекбокса
 
@@ -640,6 +695,7 @@ function saveLocal() {
   localStorage.setItem(PEOPLE_KEY, JSON.stringify(customPeople));
   localStorage.setItem(TRICKS_KEY, JSON.stringify(customTricks));
   localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  localStorage.setItem(PROOFS_KEY, JSON.stringify(proofs));
 }
 
 // Firebase запрещает в ключах символы . $ # [ ] / — кодируем
@@ -688,6 +744,7 @@ async function flush() {
 let peopleSig = JSON.stringify(customPeople);
 let tricksSig = JSON.stringify(customTricks);
 let linksSig = JSON.stringify(links);
+let proofsSig = JSON.stringify(proofs);
 
 async function pull() {
   try {
@@ -695,20 +752,24 @@ async function pull() {
     if (!r.ok) throw new Error(r.status);
     const data = (await r.json()) || {};
 
-    // список вкладок, добавленные трюки и видео-ссылки
+    // список вкладок, добавленные трюки, видео-ссылки и пруфы
     const remotePeople = data.people || {};
     const remoteTricks = data.tricks || {};
     const remoteLinks = data.links || {};
+    const remoteProofs = data.proofs || {};
     const pSig = JSON.stringify(remotePeople);
     const tSig = JSON.stringify(remoteTricks);
     const lSig = JSON.stringify(remoteLinks);
-    if (pSig !== peopleSig || tSig !== tricksSig || lSig !== linksSig) {
+    const prSig = JSON.stringify(remoteProofs);
+    if (pSig !== peopleSig || tSig !== tricksSig || lSig !== linksSig || prSig !== proofsSig) {
       peopleSig = pSig;
       tricksSig = tSig;
       linksSig = lSig;
+      proofsSig = prSig;
       customPeople = remotePeople;
       customTricks = remoteTricks;
       links = remoteLinks;
+      proofs = remoteProofs;
       buildUI();
     }
 
@@ -792,6 +853,17 @@ function makeExerciseRow(person, key, text, trickId, linkKey) {
     });
     label.appendChild(vid);
   }
+  const hasProof = !!proofs[encKey(key)];
+  const cam = document.createElement("button");
+  cam.className = "cam" + (hasProof ? " has" : "");
+  cam.textContent = "🎥";
+  cam.title = hasProof ? "Смотреть пруф" : "Загрузить видео-пруф";
+  cam.addEventListener("click", e => {
+    e.preventDefault();
+    e.stopPropagation();
+    openProofDialog(key, text, person);
+  });
+  label.appendChild(cam);
   if (trickId) {
     const rm = document.createElement("button");
     rm.className = "rm-trick";
@@ -1020,6 +1092,148 @@ function updateProgress(person) {
     document.getElementById("pro-lockfill-" + slug(person)).style.width = Math.min(100, Math.round(tpct / PRO_UNLOCK * 100)) + "%";
   }
 }
+
+// ------- Видео-пруфы: загрузка в Cloudinary -------
+const proofOverlay = document.getElementById("proof-overlay");
+const proofTitle = document.getElementById("proof-title");
+const proofSub = document.getElementById("proof-sub");
+const proofPlayer = document.getElementById("proof-player");
+const proofFile = document.getElementById("proof-file");
+const proofProgress = document.getElementById("proof-progress");
+const proofProgressFill = document.getElementById("proof-progress-fill");
+const proofErr = document.getElementById("proof-err");
+const proofRemoveBtn = document.getElementById("proof-remove");
+const proofUploadBtn = document.getElementById("proof-upload");
+let proofKey = null;
+let proofUploading = false;
+
+function openProofDialog(key, title, person) {
+  proofKey = key;
+  const url = proofs[encKey(key)];
+  proofTitle.textContent = title;
+  proofSub.textContent = "Пруф — " + person;
+  proofErr.textContent = "";
+  proofProgress.style.display = "none";
+  proofProgressFill.style.width = "0%";
+  proofFile.value = "";
+  if (url) {
+    proofPlayer.src = url;
+    proofPlayer.style.display = "";
+    proofRemoveBtn.style.display = "";
+    proofUploadBtn.textContent = "Заменить";
+  } else {
+    proofPlayer.removeAttribute("src");
+    proofPlayer.style.display = "none";
+    proofRemoveBtn.style.display = "none";
+    proofUploadBtn.textContent = "Загрузить";
+  }
+  proofOverlay.classList.add("open");
+}
+
+function closeProofDialog() {
+  if (proofUploading) return; // не закрываем посреди загрузки
+  proofPlayer.pause && proofPlayer.pause();
+  proofOverlay.classList.remove("open");
+}
+
+document.getElementById("proof-cancel").addEventListener("click", closeProofDialog);
+proofOverlay.addEventListener("click", e => { if (e.target === proofOverlay) closeProofDialog(); });
+
+proofUploadBtn.addEventListener("click", () => {
+  if (proofUploading) return;
+  proofFile.click();
+});
+
+proofFile.addEventListener("change", () => {
+  const f = proofFile.files && proofFile.files[0];
+  if (!f) return;
+  proofErr.textContent = "";
+  if (f.size > PROOF_MAX_BYTES) {
+    proofErr.textContent = "Ролик слишком большой (" + Math.round(f.size / 1048576) + " МБ). Максимум 50 МБ — это примерно 30 секунд съёмки.";
+    proofFile.value = "";
+    return;
+  }
+  // проверяем длительность до загрузки
+  const probe = document.createElement("video");
+  probe.preload = "metadata";
+  probe.onloadedmetadata = () => {
+    const dur = probe.duration;
+    URL.revokeObjectURL(probe.src);
+    if (dur && dur > PROOF_MAX_SECONDS) {
+      proofErr.textContent = "Ролик длиной " + Math.round(dur) + " сек. Максимум — 30 секунд, обрежьте видео и попробуйте снова.";
+      proofFile.value = "";
+    } else {
+      uploadProof(f);
+    }
+  };
+  probe.onerror = () => { URL.revokeObjectURL(probe.src); uploadProof(f); };
+  probe.src = URL.createObjectURL(f);
+});
+
+function uploadProof(f) {
+  proofUploading = true;
+  proofErr.textContent = "";
+  proofProgress.style.display = "";
+  proofProgressFill.style.width = "0%";
+  proofUploadBtn.textContent = "Загружается…";
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("upload_preset", UPLOAD_PRESET);
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://api.cloudinary.com/v1_1/" + CLOUD_NAME + "/video/upload");
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) proofProgressFill.style.width = Math.round(e.loaded / e.total * 100) + "%";
+  };
+  xhr.onload = async () => {
+    proofUploading = false;
+    if (xhr.status >= 200 && xhr.status < 300) {
+      let url = "";
+      try { url = JSON.parse(xhr.responseText).secure_url; } catch (e) {}
+      if (!url) { proofErr.textContent = "Что-то пошло не так — попробуйте ещё раз"; proofProgress.style.display = "none"; proofUploadBtn.textContent = "Загрузить"; return; }
+      const ek = encKey(proofKey);
+      try {
+        const body = {}; body[ek] = url;
+        await fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(body) });
+      } catch (e) {}
+      proofs[ek] = url;
+      proofsSig = JSON.stringify(proofs);
+      saveLocal();
+      proofOverlay.classList.remove("open");
+      buildUI();
+      setSync(MSG_OK, true);
+    } else {
+      proofErr.textContent = "Не удалось загрузить — попробуйте ещё раз";
+      proofProgress.style.display = "none";
+      proofUploadBtn.textContent = "Загрузить";
+    }
+  };
+  xhr.onerror = () => {
+    proofUploading = false;
+    proofErr.textContent = "Нет сети — попробуйте позже";
+    proofProgress.style.display = "none";
+    proofUploadBtn.textContent = "Загрузить";
+  };
+  xhr.send(fd);
+}
+
+proofRemoveBtn.addEventListener("click", async () => {
+  if (!proofKey || proofUploading) return;
+  if (!confirm("Убрать видео-пруф?")) return;
+  const ek = encKey(proofKey);
+  try {
+    const body = {}; body[ek] = null;
+    const r = await fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    proofErr.textContent = "Нет сети — попробуйте позже";
+    return;
+  }
+  delete proofs[ek];
+  proofsSig = JSON.stringify(proofs);
+  saveLocal();
+  proofOverlay.classList.remove("open");
+  buildUI();
+});
 
 // ------- Видео к трюкам -------
 const videoOverlay = document.getElementById("video-overlay");
