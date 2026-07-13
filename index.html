@@ -48,6 +48,68 @@
   }
   .sync.ok { color: #6cb98a; }
 
+  /* Первый экран — выбор вида спорта */
+  .start {
+    max-width: 420px;
+    margin: 10vh auto 0;
+    padding: 0 16px;
+    text-align: center;
+  }
+  .start h1 { font-size: 30px; margin-bottom: 6px; }
+  .start-sub {
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 26px;
+  }
+
+  /* Переключатель вида спорта */
+  .sports {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .sport-chip {
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 2px solid #e2ddef;
+    background: #fff;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  .sport-chip.active {
+    background: #4a4266;
+    border-color: #4a4266;
+    color: #fff;
+  }
+  .sport-big {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 14px;
+    border: 2px solid #e2ddef;
+    background: #fff;
+    color: #4a4266;
+    cursor: pointer;
+    min-height: 60px;
+  }
+  .sport-big:active { border-color: #4a4266; }
+  .sport-big .em { font-size: 28px; }
+
   /* Вкладки */
   .tabs {
     display: grid;
@@ -481,10 +543,17 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🏄‍♀️ Wake Progress</h1>
+<div class="start" id="start-screen">
+  <h1>Wake Progress</h1>
+  <div class="start-sub">Что катаем сегодня?</div>
+  <div id="sport-choices"></div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <h1 id="app-title">🏄‍♀️ Вейк</h1>
   <div class="sync" id="sync-status"></div>
 
+  <div class="sports" id="sports"></div>
   <div class="tabs" id="tabs"></div>
   <div id="panels"></div>
 </div>
@@ -570,7 +639,7 @@ const BASE_PEOPLE = [
 
 const CUSTOM_GROUP = "Свои трюки";
 
-const COURSE = [
+const COURSE_WAKE = [
   {
     id: "base",
     title: "База",
@@ -654,6 +723,44 @@ const COURSE = [
   }
 ];
 
+const COURSE_SNOWBOARD = [
+  {
+    id: "sb-base",
+    title: "База",
+    groups: [
+      { name: "Подготовка", items: ["Стойка на сноуборде","Пристёгивание креплений","Безопасное падение и подъём","Ходьба с пристёгнутой передней ногой (skating)"] },
+      { name: "Первые скольжения", items: ["Скольжение с одной пристёгнутой ногой","Прямой спуск (глиссада)","Торможение задним кантом","Торможение передним кантом"] },
+      { name: "Падающий лист", items: ["Падающий лист на заднем канте","Падающий лист на переднем канте"] },
+      { name: "Гирлянды", items: ["Гирлянда на заднем канте","Гирлянда на переднем канте"] },
+      { name: "Повороты", items: ["Поворот с заднего канта на передний","Поворот с переднего канта на задний","Связанные повороты (перекантовка)","Контроль скорости дугами"] },
+      { name: "Подъёмники", items: ["Бугельный подъёмник","Кресельный подъёмник"] },
+      { name: "Прогрессивное катание", items: ["Езда в switch","Ollie на сноуборде","Surface 180 на снегу","Проезд по мелким неровностям"] }
+    ]
+  }
+];
+
+const COURSE_SKI = [
+  {
+    id: "ski-base",
+    title: "База",
+    groups: [
+      { name: "Подготовка", items: ["Стойка горнолыжника","Пристёгивание креплений","Безопасное падение и подъём","Ходьба на лыжах по ровному"] },
+      { name: "Первые шаги на склоне", items: ["Подъём «лесенкой»","Подъём «ёлочкой»","Прямой спуск в основной стойке"] },
+      { name: "Плуг", items: ["Торможение плугом","Контроль скорости плугом","Поворот в плуге влево и вправо","Связанные повороты в плуге"] },
+      { name: "К параллельным лыжам", items: ["Соскальзывание боком","Поворот с сведением лыж (расплуживание)","Параллельный поворот","Хоккейное торможение (hockey stop)"] },
+      { name: "Подъёмники", items: ["Бугельный подъёмник","Кресельный подъёмник"] },
+      { name: "Прогрессивное катание", items: ["Первые карвинговые дуги","Ритмичные короткие повороты","Проезд по мелким неровностям","Катание по красной трассе"] }
+    ]
+  }
+];
+
+// Виды спорта — порядок как на экране выбора
+const SPORTS = [
+  { id: "snowboard", name: "Сноуборд", emoji: "🏂", course: COURSE_SNOWBOARD },
+  { id: "ski", name: "Горные лыжи", emoji: "⛷️", course: COURSE_SKI },
+  { id: "wake", name: "Вейк", emoji: "🏄‍♀️", course: COURSE_WAKE }
+];
+
 // Раздел PRO: блоки добавим позже; открывается при 90% общего прогресса
 const PRO_COURSE = [];
 const PRO_UNLOCK = 90;
@@ -667,6 +774,9 @@ const TRICKS_KEY = "wake-progress-tricks-v1";
 const LINKS_KEY = "wake-progress-links-v1";
 const PROOFS_KEY = "wake-progress-proofs-v1";
 const ACTIVE_KEY = "wake-progress-active-tab";
+const SPORT_KEY = "wake-progress-sport";
+
+let activeSport = localStorage.getItem(SPORT_KEY) || "wake";
 
 // Хранилище видео-пруфов (Cloudinary)
 const CLOUD_NAME = "atq6iq1l";
@@ -985,7 +1095,7 @@ function buildUI() {
       '<div class="bar big"><div class="fill" id="total-fill-' + slug(person) + '"></div></div>';
     panel.appendChild(total);
 
-    COURSE.forEach(block => panel.appendChild(makeBlock(person, block)));
+    currentCourse().forEach(block => panel.appendChild(makeBlock(person, block)));
 
     // Раздел PRO — под замком до 90% общего прогресса
     const pro = document.createElement("div");
@@ -1060,7 +1170,7 @@ function updateProgress(person) {
   let totalDone = 0, totalAll = 0;
   const totalFill = document.getElementById("total-fill-" + slug(person));
   if (!totalFill) return;
-  COURSE.forEach(block => {
+  currentCourse().forEach(block => {
     const s = blockStats(person, block);
     totalDone += s.done;
     totalAll += s.all;
@@ -1454,6 +1564,56 @@ async function removePerson(id, name) {
   buildUI();
   flush();
 }
+
+// ------- Вид спорта: первый экран -------
+const startScreen = document.getElementById("start-screen");
+const appEl = document.getElementById("app");
+const appTitle = document.getElementById("app-title");
+const sportsEl = document.getElementById("sports");
+const sportChoices = document.getElementById("sport-choices");
+
+function currentCourse() {
+  const s = SPORTS.find(x => x.id === activeSport);
+  return s ? s.course : COURSE_WAKE;
+}
+
+function setSport(id) {
+  activeSport = id;
+  localStorage.setItem(SPORT_KEY, id);
+  const s = SPORTS.find(x => x.id === id);
+  appTitle.textContent = s.emoji + " " + s.name;
+  startScreen.style.display = "none";
+  appEl.style.display = "";
+  renderSportChip();
+  buildUI();
+  window.scrollTo(0, 0);
+}
+
+function showStart() {
+  appEl.style.display = "none";
+  startScreen.style.display = "";
+  window.scrollTo(0, 0);
+}
+
+function renderSportChip() {
+  const s = SPORTS.find(x => x.id === activeSport);
+  sportsEl.innerHTML = "";
+  const b = document.createElement("button");
+  b.className = "sport-chip active";
+  b.innerHTML = "<span>" + s.emoji + "</span><span>" + s.name + "</span><span style=\"opacity:.65;font-weight:400\">· сменить</span>";
+  b.title = "Выбрать другой вид спорта";
+  b.addEventListener("click", showStart);
+  sportsEl.appendChild(b);
+}
+
+// кнопки на первом экране
+SPORTS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "sport-big";
+  b.innerHTML = "<span class='em'>" + s.emoji + "</span><span>" + s.name + "</span>";
+  b.addEventListener("click", () => setSport(s.id));
+  sportChoices.appendChild(b);
+});
 
 // ------- Запуск -------
 buildUI();
