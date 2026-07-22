@@ -48,10 +48,10 @@
   }
   .sync.ok { color: #6cb98a; }
 
-  /* Первый экран — выбор вида спорта */
+  /* Экраны первого входа (спорт / авторизация) */
   .start {
     max-width: 420px;
-    margin: 10vh auto 0;
+    margin: 8vh auto 0;
     padding: 0 16px;
     text-align: center;
   }
@@ -60,6 +60,37 @@
     font-size: 16px;
     color: var(--muted);
     margin-bottom: 26px;
+  }
+
+  /* Панель «кто вы» */
+  .who {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .who b { color: #4a4266; }
+  .who .role {
+    background: #f0edf7;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-weight: 700;
+    color: #4a4266;
+    font-size: 12px;
+  }
+  .who .logout {
+    background: none;
+    border: none;
+    color: #c14479;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 4px;
   }
 
   /* Переключатель вида спорта */
@@ -109,6 +140,16 @@
   }
   .sport-big:active { border-color: #4a4266; }
   .sport-big .em { font-size: 28px; }
+  .sport-big.ghost {
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border-style: dashed;
+    min-height: 50px;
+    margin-top: 4px;
+  }
 
   /* Вкладки */
   .tabs {
@@ -153,6 +194,14 @@
   }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  .empty-hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    padding: 40px 20px;
+    line-height: 1.5;
+  }
 
   /* Общий прогресс человека */
   .total {
@@ -204,13 +253,25 @@
   .block-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
   .block-count {
     font-size: 12px;
     color: var(--muted);
     white-space: nowrap;
   }
+  .block-del {
+    background: none;
+    border: none;
+    color: #d0c9df;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
+  .block-del:active { color: #c74d4d; }
+  @media (hover: hover) { .block-del:hover { color: #c74d4d; } }
   .chev {
     width: 32px;
     height: 32px;
@@ -272,10 +333,11 @@
     font-size: 15px;
     min-height: 44px;
   }
+  label.ex.locked { cursor: default; }
   @media (hover: hover) {
-    label.ex:hover { background: var(--p-soft); }
+    label.ex:not(.locked):hover { background: var(--p-soft); }
   }
-  label.ex:active { background: var(--p-soft); }
+  label.ex:not(.locked):active { background: var(--p-soft); }
   label.ex input {
     appearance: none;
     -webkit-appearance: none;
@@ -290,6 +352,7 @@
     position: relative;
     transition: all .15s;
   }
+  label.ex input:disabled { cursor: default; }
   label.ex input:checked {
     background: var(--p-accent);
     border-color: var(--p-accent);
@@ -381,7 +444,7 @@
   .upload-progress { margin-top: 12px; display: none; }
   .upload-progress .fill { background: linear-gradient(90deg, #4a4266, #a577d8); }
 
-  /* Кнопка добавления трюка */
+  /* Кнопка добавления трюка / блока */
   .add-trick {
     display: flex;
     align-items: center;
@@ -416,6 +479,7 @@
     .add-trick:hover { color: var(--p-dark); border-color: var(--p-accent2); }
   }
   .add-trick:active { color: var(--p-dark); border-color: var(--p-accent2); }
+  .add-block { margin-top: 18px; justify-content: center; border-radius: 14px; font-size: 15px; }
 
   .remove-person {
     display: block;
@@ -478,7 +542,7 @@
   }
   .dialog h2 { margin: 0 0 14px; font-size: 18px; color: #4a4266; text-align: center; }
   .dialog .sub { font-size: 13px; color: var(--muted); text-align: center; margin: -8px 0 14px; }
-  .dialog input[type="text"] {
+  .dialog input[type="text"], .dialog input[type="password"] {
     width: 100%;
     font-family: inherit;
     font-size: 16px;
@@ -488,7 +552,7 @@
     outline: none;
     color: var(--text);
   }
-  .dialog input[type="text"]:focus { border-color: #b7aee0; }
+  .dialog input:focus { border-color: #b7aee0; }
   .swatches {
     display: flex;
     flex-wrap: wrap;
@@ -543,14 +607,27 @@
 </style>
 </head>
 <body>
-<div class="start" id="start-screen">
+
+<!-- Экран авторизации -->
+<div class="start" id="auth-screen" style="display:none">
+  <h1>Wake Progress</h1>
+  <div class="start-sub">Войдите или создайте аккаунт</div>
+  <button class="sport-big" id="auth-reg-trainer"><span class="em">🎓</span><span>Регистрация — Тренер</span></button>
+  <button class="sport-big" id="auth-reg-rider"><span class="em">🏂</span><span>Регистрация — Райдер</span></button>
+  <button class="sport-big ghost" id="auth-login">Уже есть аккаунт — войти</button>
+</div>
+
+<!-- Экран выбора спорта -->
+<div class="start" id="start-screen" style="display:none">
   <h1>Wake Progress</h1>
   <div class="start-sub">Что катаем сегодня?</div>
   <div id="sport-choices"></div>
 </div>
 
+<!-- Приложение -->
 <div class="wrap" id="app" style="display:none">
   <h1 id="app-title">🏄‍♀️ Вейк</h1>
+  <div class="who" id="who-bar"></div>
   <div class="sync" id="sync-status"></div>
 
   <div class="sports" id="sports"></div>
@@ -558,10 +635,43 @@
   <div id="panels"></div>
 </div>
 
+<datalist id="profiles-list"></datalist>
+
+<!-- Регистрация -->
+<div class="overlay" id="register-overlay">
+  <div class="dialog">
+    <h2 id="register-title">Регистрация</h2>
+    <div class="sub" id="register-sub"></div>
+    <input type="text" id="register-name" placeholder="Имя" maxlength="20" autocomplete="off">
+    <input type="password" id="register-pass" placeholder="Пароль (мин. 4 символа)" maxlength="40" autocomplete="new-password" style="margin-top:10px">
+    <div class="err" id="register-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="register-cancel">Отмена</button>
+      <button class="btn-ok" id="register-ok">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Вход -->
+<div class="overlay" id="login-overlay">
+  <div class="dialog">
+    <h2>Вход</h2>
+    <input type="text" id="login-name" placeholder="Имя" maxlength="20" autocomplete="off">
+    <input type="password" id="login-pass" placeholder="Пароль" maxlength="40" autocomplete="current-password" style="margin-top:10px">
+    <div class="err" id="login-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="login-cancel">Отмена</button>
+      <button class="btn-ok" id="login-ok">Войти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Добавить райдера (тренер) -->
 <div class="overlay" id="add-overlay">
   <div class="dialog">
-    <h2>Новая вкладка</h2>
-    <input type="text" id="add-name" placeholder="Имя" maxlength="14">
+    <h2 id="add-title">Добавить райдера</h2>
+    <div class="sub">Появится у тебя во вкладках</div>
+    <input type="text" id="add-name" placeholder="Имя райдера" list="profiles-list" maxlength="20">
     <div class="swatches" id="add-swatches"></div>
     <div class="err" id="add-err"></div>
     <div class="dialog-btns">
@@ -571,6 +681,35 @@
   </div>
 </div>
 
+<!-- Подписаться (райдер) -->
+<div class="overlay" id="follow-overlay">
+  <div class="dialog">
+    <h2>Подписаться на райдера</h2>
+    <div class="sub">Его прогресс появится у тебя во вкладках</div>
+    <input type="text" id="follow-name" placeholder="Имя райдера" list="profiles-list" maxlength="20">
+    <div class="err" id="follow-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="follow-cancel">Отмена</button>
+      <button class="btn-ok" id="follow-ok">Подписаться</button>
+    </div>
+  </div>
+</div>
+
+<!-- Новый блок (тренер) -->
+<div class="overlay" id="block-overlay">
+  <div class="dialog">
+    <h2>Новый блок</h2>
+    <div class="sub" id="block-sub"></div>
+    <input type="text" id="block-name" placeholder="Название блока" maxlength="40">
+    <div class="err" id="block-err"></div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" id="block-cancel">Отмена</button>
+      <button class="btn-ok" id="block-ok">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Видео к трюку -->
 <div class="overlay" id="video-overlay">
   <div class="dialog">
     <h2 id="video-title">Видео</h2>
@@ -585,6 +724,7 @@
   </div>
 </div>
 
+<!-- Видео-пруф -->
 <div class="overlay" id="proof-overlay">
   <div class="dialog">
     <h2 id="proof-title">Видео-пруф</h2>
@@ -592,7 +732,7 @@
     <video class="proof-video" id="proof-player" controls playsinline preload="metadata" style="display:none"></video>
     <input type="file" id="proof-file" accept="video/*" style="display:none">
     <div class="upload-progress" id="proof-progress"><div class="bar"><div class="fill" id="proof-progress-fill"></div></div></div>
-    <div class="file-note">Ролик до 30 секунд и не больше 50 МБ</div>
+    <div class="file-note" id="proof-note">Ролик до 30 секунд и не больше 50 МБ</div>
     <div class="err" id="proof-err"></div>
     <div class="dialog-btns">
       <button class="btn-cancel" id="proof-cancel">Закрыть</button>
@@ -602,6 +742,7 @@
   </div>
 </div>
 
+<!-- Новый трюк -->
 <div class="overlay" id="trick-overlay">
   <div class="dialog">
     <h2>Новый трюк</h2>
@@ -618,18 +759,18 @@
 <script>
 // Цветовые наборы: accent / accent2 / soft / dark / glow
 const PALETTES = [
-  { accent: "#ec6a9f", accent2: "#f9a8c9", soft: "#fdeef4", dark: "#c14479", glow: "rgba(236,106,159,.35)" }, // розовый
-  { accent: "#f4749b", accent2: "#ffb3c6", soft: "#ffeff3", dark: "#d14f7c", glow: "rgba(244,116,155,.35)" }, // тёплый розовый
-  { accent: "#4da3e0", accent2: "#8ecdf5", soft: "#eaf5fd", dark: "#2d7cb8", glow: "rgba(77,163,224,.35)" },  // голубой
-  { accent: "#a577d8", accent2: "#cdaef0", soft: "#f5eefc", dark: "#7e51b3", glow: "rgba(165,119,216,.35)" }, // сиреневый
-  { accent: "#4ec9a5", accent2: "#8fe3c8", soft: "#eafaf4", dark: "#2e9e7d", glow: "rgba(78,201,165,.35)" },  // мятный
-  { accent: "#f29a5b", accent2: "#f8c39a", soft: "#fdf2e7", dark: "#c9702f", glow: "rgba(242,154,91,.35)" },  // персиковый
-  { accent: "#3ec3cd", accent2: "#8adfe6", soft: "#e8f8fa", dark: "#26969f", glow: "rgba(62,195,205,.35)" },  // бирюзовый
-  { accent: "#ef7676", accent2: "#f8aeae", soft: "#fdeeee", dark: "#c74d4d", glow: "rgba(239,118,118,.35)" }, // коралловый
-  { accent: "#d9a824", accent2: "#eccd78", soft: "#fbf5e2", dark: "#a67c12", glow: "rgba(217,168,36,.35)" }   // золотой
+  { accent: "#ec6a9f", accent2: "#f9a8c9", soft: "#fdeef4", dark: "#c14479", glow: "rgba(236,106,159,.35)" },
+  { accent: "#f4749b", accent2: "#ffb3c6", soft: "#ffeff3", dark: "#d14f7c", glow: "rgba(244,116,155,.35)" },
+  { accent: "#4da3e0", accent2: "#8ecdf5", soft: "#eaf5fd", dark: "#2d7cb8", glow: "rgba(77,163,224,.35)" },
+  { accent: "#a577d8", accent2: "#cdaef0", soft: "#f5eefc", dark: "#7e51b3", glow: "rgba(165,119,216,.35)" },
+  { accent: "#4ec9a5", accent2: "#8fe3c8", soft: "#eafaf4", dark: "#2e9e7d", glow: "rgba(78,201,165,.35)" },
+  { accent: "#f29a5b", accent2: "#f8c39a", soft: "#fdf2e7", dark: "#c9702f", glow: "rgba(242,154,91,.35)" },
+  { accent: "#3ec3cd", accent2: "#8adfe6", soft: "#e8f8fa", dark: "#26969f", glow: "rgba(62,195,205,.35)" },
+  { accent: "#ef7676", accent2: "#f8aeae", soft: "#fdeeee", dark: "#c74d4d", glow: "rgba(239,118,118,.35)" },
+  { accent: "#d9a824", accent2: "#eccd78", soft: "#fbf5e2", dark: "#a67c12", glow: "rgba(217,168,36,.35)" }
 ];
 
-// Базовые вкладки — их нельзя удалить
+// Легаси-профили (были до системы аккаунтов) — их данные сохраняем
 const BASE_PEOPLE = [
   { name: "Лена",  palette: 0 },
   { name: "Яся",   palette: 1 },
@@ -754,18 +895,16 @@ const COURSE_SKI = [
   }
 ];
 
-// Виды спорта — порядок как на экране выбора
 const SPORTS = [
   { id: "snowboard", name: "Сноуборд", emoji: "🏂", course: COURSE_SNOWBOARD },
   { id: "ski", name: "Горные лыжи", emoji: "⛷️", course: COURSE_SKI },
   { id: "wake", name: "Вейк", emoji: "🏄‍♀️", course: COURSE_WAKE }
 ];
 
-// Раздел PRO: блоки добавим позже; открывается при 90% общего прогресса
 const PRO_COURSE = [];
 const PRO_UNLOCK = 90;
 
-// ------- Хранилище: облако (Firebase) + локальный кеш -------
+// ------- Хранилище -------
 const DB_URL = "https://wake-progress-default-rtdb.europe-west1.firebasedatabase.app";
 const STORAGE_KEY = "wake-progress-v1";
 const PENDING_KEY = "wake-progress-pending-v1";
@@ -773,43 +912,66 @@ const PEOPLE_KEY = "wake-progress-people-v1";
 const TRICKS_KEY = "wake-progress-tricks-v1";
 const LINKS_KEY = "wake-progress-links-v1";
 const PROOFS_KEY = "wake-progress-proofs-v1";
+const BLOCKS_KEY = "wake-progress-blocks-v1";
+const ROSTER_KEY = "wake-progress-roster-v1";
+const FOLLOWS_KEY = "wake-progress-follows-v1";
 const ACTIVE_KEY = "wake-progress-active-tab";
 const SPORT_KEY = "wake-progress-sport";
+const USER_KEY = "wake-progress-user-v1";
 
 let activeSport = localStorage.getItem(SPORT_KEY) || "wake";
 
-// Хранилище видео-пруфов (Cloudinary)
+// Cloudinary
 const CLOUD_NAME = "atq6iq1l";
 const UPLOAD_PRESET = "ml_default";
-const PROOF_MAX_BYTES = 50 * 1024 * 1024; // 50 МБ ≈ 30 секунд съёмки с телефона в 1080p
+const PROOF_MAX_BYTES = 50 * 1024 * 1024;
 const PROOF_MAX_SECONDS = 31;
 
-let state = {};        // текущие отметки: ключ -> true
-let pending = {};      // не отправленные в облако изменения: ключ -> true | null
-let customPeople = {}; // добавленные вкладки: id -> {name, palette, created}
-let customTricks = {}; // добавленные трюки: id -> {block, name, created}
-let links = {};        // видео к трюкам: закодированный ключ (блок|группа|трюк) -> url
-let proofs = {};       // видео-пруфы: закодированный ключ (человек|блок|группа|трюк) -> url
+let state = {};
+let pending = {};
+let customPeople = {};
+let customTricks = {};
+let customBlocks = {};   // id -> {sport, title, created}
+let links = {};
+let proofs = {};
+let users = {};          // encName -> {name, role, pass, created}
+let roster = {};         // trainerEnc -> { riderEnc: true }
+let follows = {};        // riderEnc -> { followedEnc: true }
+let user = null;         // {name, role, pass}
+
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { state = {}; }
 try { pending = JSON.parse(localStorage.getItem(PENDING_KEY)) || {}; } catch (e) { pending = {}; }
 try { customPeople = JSON.parse(localStorage.getItem(PEOPLE_KEY)) || {}; } catch (e) { customPeople = {}; }
 try { customTricks = JSON.parse(localStorage.getItem(TRICKS_KEY)) || {}; } catch (e) { customTricks = {}; }
+try { customBlocks = JSON.parse(localStorage.getItem(BLOCKS_KEY)) || {}; } catch (e) { customBlocks = {}; }
 try { links = JSON.parse(localStorage.getItem(LINKS_KEY)) || {}; } catch (e) { links = {}; }
 try { proofs = JSON.parse(localStorage.getItem(PROOFS_KEY)) || {}; } catch (e) { proofs = {}; }
+try { roster = JSON.parse(localStorage.getItem(ROSTER_KEY)) || {}; } catch (e) { roster = {}; }
+try { follows = JSON.parse(localStorage.getItem(FOLLOWS_KEY)) || {}; } catch (e) { follows = {}; }
+try { user = JSON.parse(localStorage.getItem(USER_KEY)) || null; } catch (e) { user = null; }
 
-let checkboxRefs = {}; // ключ -> элемент чекбокса
+let checkboxRefs = {};
 
 function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
   localStorage.setItem(PEOPLE_KEY, JSON.stringify(customPeople));
   localStorage.setItem(TRICKS_KEY, JSON.stringify(customTricks));
+  localStorage.setItem(BLOCKS_KEY, JSON.stringify(customBlocks));
   localStorage.setItem(LINKS_KEY, JSON.stringify(links));
   localStorage.setItem(PROOFS_KEY, JSON.stringify(proofs));
+  localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+  localStorage.setItem(FOLLOWS_KEY, JSON.stringify(follows));
 }
 
-// Firebase запрещает в ключах символы . $ # [ ] / — кодируем
+// Firebase запрещает в ключах . $ # [ ] / — кодируем
 function encKey(k) { return encodeURIComponent(k).replace(/\./g, "%2E"); }
+function decKey(ek) { try { return decodeURIComponent(ek); } catch (e) { return ek; } }
+
+async function sha256(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 const syncEl = document.getElementById("sync-status");
 function setSync(text, ok) {
@@ -819,7 +981,14 @@ function setSync(text, ok) {
 const MSG_OK = "✓ синхронизировано";
 const MSG_QUEUE = "нет сети — отметки сохранятся и отправятся позже";
 
-function allPeople() {
+function hashPalette(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return h % PALETTES.length;
+}
+
+// Все известные профили райдеров (легаси + добавленные)
+function allProfiles() {
   const custom = Object.keys(customPeople).map(id => {
     const p = customPeople[id] || {};
     return { id: id, name: p.name, palette: p.palette || 0, created: p.created || 0 };
@@ -827,11 +996,59 @@ function allPeople() {
   return BASE_PEOPLE.map(p => ({ id: null, name: p.name, palette: p.palette })).concat(custom);
 }
 
+function profileFor(name) {
+  const p = allProfiles().find(x => x.name === name);
+  if (p) return p;
+  return { name: name, palette: hashPalette(name) };
+}
+
+// ------- Роли и права -------
+function isTrainer() { return user && user.role === "trainer"; }
+function isRider() { return user && user.role === "rider"; }
+function riderInRoster(name) {
+  return isTrainer() && !!roster[encKey(user.name) + "|" + encKey(name)];
+}
+function canCheck(person) { return riderInRoster(person); }                 // галочки — только тренер, своим райдерам
+function canEditProof(person) {                                            // видео-пруф — райдер себе или тренер своим райдерам
+  return (isRider() && person === user.name) || riderInRoster(person);
+}
+function canCurriculum() { return isTrainer(); }                           // блоки, трюки, обучающие видео — тренер
+
+// Кто виден во вкладках
+function visiblePeople() {
+  if (!user) return [];
+  let names = [];
+  const prefix = encKey(user.name) + "|";
+  if (user.role === "trainer") {
+    names = Object.keys(roster).filter(k => roster[k] && k.indexOf(prefix) === 0).map(k => decKey(k.slice(prefix.length)));
+  } else {
+    const followed = Object.keys(follows).filter(k => follows[k] && k.indexOf(prefix) === 0).map(k => decKey(k.slice(prefix.length)));
+    names = [user.name].concat(followed);
+  }
+  const seen = {}, out = [];
+  names.forEach(n => { if (n && !seen[n]) { seen[n] = 1; out.push(profileFor(n)); } });
+  return out;
+}
+
 function tricksOf(blockId) {
   return Object.keys(customTricks).map(id => {
     const t = customTricks[id] || {};
     return { id: id, block: t.block, name: t.name, created: t.created || 0 };
   }).filter(t => t.block === blockId && t.name).sort((a, b) => a.created - b.created);
+}
+
+function blocksOfSport(sport) {
+  return Object.keys(customBlocks).map(id => {
+    const b = customBlocks[id] || {};
+    return { id: id, sport: b.sport, title: b.title, created: b.created || 0 };
+  }).filter(b => b.sport === sport && b.title).sort((a, b) => a.created - b.created);
+}
+
+function currentCourse() {
+  const s = SPORTS.find(x => x.id === activeSport);
+  const base = s ? s.course : COURSE_WAKE;
+  const extra = blocksOfSport(activeSport).map(b => ({ id: b.id, title: b.title, groups: [], custom: true }));
+  return base.concat(extra);
 }
 
 async function flush() {
@@ -851,10 +1068,9 @@ async function flush() {
   }
 }
 
-let peopleSig = JSON.stringify(customPeople);
-let tricksSig = JSON.stringify(customTricks);
-let linksSig = JSON.stringify(links);
-let proofsSig = JSON.stringify(proofs);
+let structSig = "";
+
+function appVisible() { return appEl.style.display !== "none"; }
 
 async function pull() {
   try {
@@ -862,31 +1078,38 @@ async function pull() {
     if (!r.ok) throw new Error(r.status);
     const data = (await r.json()) || {};
 
-    // список вкладок, добавленные трюки, видео-ссылки и пруфы
+    users = data.users || {};
+    // проверка сессии: выходим только при явном несовпадении пароля
+    // (отсутствие записи может быть кратковременным сразу после регистрации — не разлогиниваем)
+    if (user) {
+      const u = users[encKey(user.name)];
+      if (u && u.pass !== user.pass) { logout(); return; }
+    }
+
     const remotePeople = data.people || {};
     const remoteTricks = data.tricks || {};
+    const remoteBlocks = data.blocks || {};
     const remoteLinks = data.links || {};
     const remoteProofs = data.proofs || {};
-    const pSig = JSON.stringify(remotePeople);
-    const tSig = JSON.stringify(remoteTricks);
-    const lSig = JSON.stringify(remoteLinks);
-    const prSig = JSON.stringify(remoteProofs);
-    if (pSig !== peopleSig || tSig !== tricksSig || lSig !== linksSig || prSig !== proofsSig) {
-      peopleSig = pSig;
-      tricksSig = tSig;
-      linksSig = lSig;
-      proofsSig = prSig;
+    const remoteRoster = data.roster || {};
+    const remoteFollows = data.follows || {};
+    const sig = JSON.stringify([remotePeople, remoteTricks, remoteBlocks, remoteLinks, remoteProofs, remoteRoster, remoteFollows, users]);
+    if (sig !== structSig) {
+      structSig = sig;
       customPeople = remotePeople;
       customTricks = remoteTricks;
+      customBlocks = remoteBlocks;
       links = remoteLinks;
       proofs = remoteProofs;
-      buildUI();
+      roster = remoteRoster;
+      follows = remoteFollows;
+      saveLocal();
+      if (appVisible()) buildUI();
     }
 
     // отметки
     const remoteRaw = ("state" in data) ? data.state : null;
     if (remoteRaw === null && Object.keys(state).length) {
-      // облако пустое, а локально отметки есть — заливаем их наверх
       Object.keys(state).forEach(k => { pending[k] = true; });
     } else {
       const remote = {};
@@ -899,26 +1122,23 @@ async function pull() {
       });
     }
     saveLocal();
-    renderState();
+    if (appVisible()) renderState();
     const ok = await flush();
     setSync(ok ? MSG_OK : MSG_QUEUE, ok);
   } catch (e) {
-    setSync("нет сети — отметки сохраняются на этом устройстве", false);
+    setSync("нет сети — данные сохраняются на этом устройстве", false);
   }
 }
 
 function renderState() {
   Object.keys(checkboxRefs).forEach(k => { checkboxRefs[k].checked = !!state[k]; });
-  allPeople().forEach(p => updateProgress(p.name));
+  visiblePeople().forEach(p => updateProgress(p.name));
 }
 
 function exKey(person, blockId, group, item) {
   return person + "|" + blockId + "|" + group + "|" + item;
 }
-
-function slug(s) {
-  return s.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "-");
-}
+function slug(s) { return s.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "-"); }
 
 function applyTheme(el, pal) {
   el.style.setProperty("--p-accent", pal.accent);
@@ -933,13 +1153,16 @@ const tabsEl = document.getElementById("tabs");
 const panelsEl = document.getElementById("panels");
 
 function makeExerciseRow(person, key, text, trickId, linkKey) {
+  const editable = canCheck(person);
   const label = document.createElement("label");
-  label.className = "ex";
+  label.className = "ex" + (editable ? "" : " locked");
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.checked = !!state[key];
+  cb.disabled = !editable;
   checkboxRefs[key] = cb;
   cb.addEventListener("change", () => {
+    if (!editable) { cb.checked = !!state[key]; return; }
     if (cb.checked) { state[key] = true; pending[key] = true; }
     else { delete state[key]; pending[key] = null; }
     saveLocal();
@@ -950,38 +1173,41 @@ function makeExerciseRow(person, key, text, trickId, linkKey) {
   span.textContent = text;
   label.appendChild(cb);
   label.appendChild(span);
-  if (linkKey) {
-    const hasLink = !!links[encKey(linkKey)];
+
+  // Обучающее видео (▶): смотрят все; прикрепляет/меняет — тренер
+  const hasLink = !!links[encKey(linkKey)];
+  if (hasLink || canCurriculum()) {
     const vid = document.createElement("button");
     vid.className = "vid" + (hasLink ? " has" : "");
     vid.textContent = "▶";
     vid.title = hasLink ? "Смотреть видео" : "Прикрепить видео";
     vid.addEventListener("click", e => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       openVideoDialog(linkKey, text);
     });
     label.appendChild(vid);
   }
+
+  // Видео-пруф (🎥): смотрят все; грузит райдер (себе) или тренер (своим)
   const hasProof = !!proofs[encKey(key)];
   const cam = document.createElement("button");
   cam.className = "cam" + (hasProof ? " has" : "");
   cam.textContent = "🎥";
-  cam.title = hasProof ? "Смотреть пруф" : "Загрузить видео-пруф";
+  cam.title = hasProof ? "Смотреть пруф" : "Видео-пруф";
   cam.addEventListener("click", e => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     openProofDialog(key, text, person);
   });
   label.appendChild(cam);
-  if (trickId) {
+
+  // Удаление трюка — только тренер
+  if (trickId && canCurriculum()) {
     const rm = document.createElement("button");
     rm.className = "rm-trick";
     rm.textContent = "✕";
     rm.title = "Удалить трюк";
     rm.addEventListener("click", e => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       removeTrick(trickId, text);
     });
     label.appendChild(rm);
@@ -994,45 +1220,44 @@ function makeBlock(person, block) {
   det.className = "block";
 
   const summary = document.createElement("summary");
+  const delBtn = (block.custom && canCurriculum())
+    ? '<button class="block-del" title="Удалить блок">🗑</button>' : '';
   summary.innerHTML =
     '<div class="block-head">' +
       '<div class="block-title">' + block.title + '</div>' +
       '<div class="block-right">' +
         '<span class="block-count" id="count-' + slug(person) + '-' + block.id + '"></span>' +
+        delBtn +
         '<span class="chev">▼</span>' +
       '</div>' +
     '</div>' +
     '<div class="bar"><div class="fill" id="fill-' + slug(person) + '-' + block.id + '"></div></div>';
   det.appendChild(summary);
+  const delEl = summary.querySelector(".block-del");
+  if (delEl) delEl.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    removeBlock(block.id, block.title);
+  });
 
   const body = document.createElement("div");
   body.className = "block-body";
-
-  if (block.note) {
-    const n = document.createElement("div");
-    n.className = "note";
-    n.textContent = block.note;
-    body.appendChild(n);
-  }
 
   block.groups.forEach(group => {
     const gt = document.createElement("div");
     gt.className = "group-title";
     gt.textContent = group.name;
     body.appendChild(gt);
-
     group.items.forEach(item => {
       const key = exKey(person, block.id, group.name, item);
       body.appendChild(makeExerciseRow(person, key, item, null, block.id + "|" + group.name + "|" + item));
     });
   });
 
-  // добавленные трюки этого блока
   const extra = tricksOf(block.id);
   if (extra.length) {
     const gt = document.createElement("div");
     gt.className = "group-title";
-    gt.textContent = CUSTOM_GROUP;
+    gt.textContent = block.custom ? "Трюки" : CUSTOM_GROUP;
     body.appendChild(gt);
     extra.forEach(t => {
       const key = exKey(person, block.id, CUSTOM_GROUP, t.name);
@@ -1040,12 +1265,14 @@ function makeBlock(person, block) {
     });
   }
 
-  // кнопка добавления трюка
-  const addBtn = document.createElement("button");
-  addBtn.className = "add-trick";
-  addBtn.innerHTML = '<span class="plus">+</span><span>Добавить трюк</span>';
-  addBtn.addEventListener("click", () => openTrickDialog(block));
-  body.appendChild(addBtn);
+  // Добавить трюк — только тренер
+  if (canCurriculum()) {
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-trick";
+    addBtn.innerHTML = '<span class="plus">+</span><span>Добавить трюк</span>';
+    addBtn.addEventListener("click", () => openTrickDialog(block));
+    body.appendChild(addBtn);
+  }
 
   det.appendChild(body);
   return det;
@@ -1061,14 +1288,14 @@ function buildUI() {
   tabsEl.innerHTML = "";
   panelsEl.innerHTML = "";
   checkboxRefs = {};
+  refreshProfilesDatalist();
 
-  const people = allPeople();
+  const people = visiblePeople();
   const savedActive = localStorage.getItem(ACTIVE_KEY);
-  const activeName = people.some(p => p.name === savedActive) ? savedActive : people[0].name;
+  const activeName = people.some(p => p.name === savedActive) ? savedActive : (people[0] && people[0].name);
 
-  // вкладок может стать больше четырёх — расширяем сетку
   const cols = Math.min(people.length + 1, window.matchMedia("(max-width: 600px)").matches ? 3 : 5);
-  tabsEl.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+  tabsEl.style.gridTemplateColumns = "repeat(" + Math.max(cols, 1) + ", 1fr)";
 
   people.forEach(p => {
     const pal = PALETTES[p.palette % PALETTES.length];
@@ -1097,7 +1324,16 @@ function buildUI() {
 
     currentCourse().forEach(block => panel.appendChild(makeBlock(person, block)));
 
-    // Раздел PRO — под замком до 90% общего прогресса
+    // Добавить блок — только тренер
+    if (canCurriculum()) {
+      const addBlock = document.createElement("button");
+      addBlock.className = "add-trick add-block";
+      addBlock.innerHTML = '<span class="plus">+</span><span>Добавить блок</span>';
+      addBlock.addEventListener("click", openBlockDialog);
+      panel.appendChild(addBlock);
+    }
+
+    // PRO
     const pro = document.createElement("div");
     pro.className = "pro-section";
     const lock = document.createElement("div");
@@ -1109,7 +1345,6 @@ function buildUI() {
       '<div class="pro-lock-note">Раздел откроется, когда общий прогресс достигнет ' + PRO_UNLOCK + '%.<br>Сейчас — <b id="pro-pct-' + slug(person) + '">0%</b></div>' +
       '<div class="bar pro-lock-bar"><div class="fill" id="pro-lockfill-' + slug(person) + '"></div></div>';
     pro.appendChild(lock);
-
     const proContent = document.createElement("div");
     proContent.className = "pro-content";
     proContent.id = "pro-content-" + slug(person);
@@ -1129,12 +1364,18 @@ function buildUI() {
     pro.appendChild(proContent);
     panel.appendChild(pro);
 
-    // удаление — только для добавленных вкладок
-    if (p.id) {
+    // Управление связью (убрать из группы / отписаться)
+    if (isTrainer()) {
       const rm = document.createElement("button");
       rm.className = "remove-person";
-      rm.textContent = "Удалить вкладку «" + person + "»";
-      rm.addEventListener("click", () => removePerson(p.id, person));
+      rm.textContent = "Убрать «" + person + "» из группы";
+      rm.addEventListener("click", () => removeFromRoster(person));
+      panel.appendChild(rm);
+    } else if (isRider() && person !== user.name) {
+      const rm = document.createElement("button");
+      rm.className = "remove-person";
+      rm.textContent = "Отписаться от «" + person + "»";
+      rm.addEventListener("click", () => unfollow(person));
       panel.appendChild(rm);
     }
 
@@ -1142,13 +1383,22 @@ function buildUI() {
     updateProgress(person);
   });
 
-  // кнопка добавления вкладки
+  // Кнопка «+» (добавить райдера / подписаться)
   const add = document.createElement("button");
   add.className = "tab-btn add";
   add.textContent = "+";
-  add.title = "Добавить вкладку";
-  add.addEventListener("click", openAddDialog);
+  add.title = isTrainer() ? "Добавить райдера" : "Подписаться на райдера";
+  add.addEventListener("click", () => { if (isTrainer()) openAddDialog(); else openFollowDialog(); });
   tabsEl.appendChild(add);
+
+  if (!people.length) {
+    const hint = document.createElement("div");
+    hint.className = "empty-hint";
+    hint.innerHTML = isTrainer()
+      ? "У тебя пока нет райдеров.<br>Нажми «+», чтобы добавить."
+      : "Отметь свой прогресс или подпишись на друзей через «+».";
+    panelsEl.appendChild(hint);
+  }
 }
 
 function blockStats(person, block) {
@@ -1175,24 +1425,15 @@ function updateProgress(person) {
     totalDone += s.done;
     totalAll += s.all;
     const pct = s.all ? Math.round(s.done / s.all * 100) : 0;
-    document.getElementById("fill-" + slug(person) + "-" + block.id).style.width = pct + "%";
-    document.getElementById("count-" + slug(person) + "-" + block.id).textContent = s.done + " / " + s.all + " · " + pct + "%";
+    const f = document.getElementById("fill-" + slug(person) + "-" + block.id);
+    const c = document.getElementById("count-" + slug(person) + "-" + block.id);
+    if (f) f.style.width = pct + "%";
+    if (c) c.textContent = s.done + " / " + s.all + " · " + pct + "%";
   });
   const tpct = totalAll ? Math.round(totalDone / totalAll * 100) : 0;
   totalFill.style.width = tpct + "%";
   document.getElementById("total-txt-" + slug(person)).textContent = totalDone + " / " + totalAll + " · " + tpct + "%";
 
-  // PRO-блоки: свои прогресс-бары, в общий прогресс не входят
-  PRO_COURSE.forEach(block => {
-    const fill = document.getElementById("fill-" + slug(person) + "-" + block.id);
-    if (!fill) return;
-    const s = blockStats(person, block);
-    const pct = s.all ? Math.round(s.done / s.all * 100) : 0;
-    fill.style.width = pct + "%";
-    document.getElementById("count-" + slug(person) + "-" + block.id).textContent = s.done + " / " + s.all + " · " + pct + "%";
-  });
-
-  // замок раздела PRO
   const lockEl = document.getElementById("pro-lock-" + slug(person));
   if (lockEl) {
     const unlocked = tpct >= PRO_UNLOCK;
@@ -1203,7 +1444,18 @@ function updateProgress(person) {
   }
 }
 
-// ------- Видео-пруфы: загрузка в Cloudinary -------
+function refreshProfilesDatalist() {
+  const dl = document.getElementById("profiles-list");
+  dl.innerHTML = "";
+  allProfiles().forEach(p => {
+    if (user && p.name === user.name) return;
+    const o = document.createElement("option");
+    o.value = p.name;
+    dl.appendChild(o);
+  });
+}
+
+// ------- Видео-пруфы -------
 const proofOverlay = document.getElementById("proof-overlay");
 const proofTitle = document.getElementById("proof-title");
 const proofSub = document.getElementById("proof-sub");
@@ -1211,14 +1463,17 @@ const proofPlayer = document.getElementById("proof-player");
 const proofFile = document.getElementById("proof-file");
 const proofProgress = document.getElementById("proof-progress");
 const proofProgressFill = document.getElementById("proof-progress-fill");
+const proofNote = document.getElementById("proof-note");
 const proofErr = document.getElementById("proof-err");
 const proofRemoveBtn = document.getElementById("proof-remove");
 const proofUploadBtn = document.getElementById("proof-upload");
 let proofKey = null;
+let proofEditable = false;
 let proofUploading = false;
 
 function openProofDialog(key, title, person) {
   proofKey = key;
+  proofEditable = canEditProof(person);
   const url = proofs[encKey(key)];
   proofTitle.textContent = title;
   proofSub.textContent = "Пруф — " + person;
@@ -1229,52 +1484,53 @@ function openProofDialog(key, title, person) {
   if (url) {
     proofPlayer.src = url;
     proofPlayer.style.display = "";
-    proofRemoveBtn.style.display = "";
-    proofUploadBtn.textContent = "Заменить";
   } else {
     proofPlayer.removeAttribute("src");
     proofPlayer.style.display = "none";
+  }
+  if (proofEditable) {
+    proofNote.style.display = "";
+    proofNote.textContent = "Ролик до 30 секунд и не больше 50 МБ";
+    proofUploadBtn.style.display = "";
+    proofUploadBtn.textContent = url ? "Заменить" : "Загрузить";
+    proofRemoveBtn.style.display = url ? "" : "none";
+  } else {
+    proofUploadBtn.style.display = "none";
     proofRemoveBtn.style.display = "none";
-    proofUploadBtn.textContent = "Загрузить";
+    proofNote.style.display = url ? "none" : "";
+    proofNote.textContent = url ? "" : "Видео ещё не загружено";
   }
   proofOverlay.classList.add("open");
 }
 
 function closeProofDialog() {
-  if (proofUploading) return; // не закрываем посреди загрузки
-  proofPlayer.pause && proofPlayer.pause();
+  if (proofUploading) return;
+  if (proofPlayer.pause) proofPlayer.pause();
   proofOverlay.classList.remove("open");
 }
-
 document.getElementById("proof-cancel").addEventListener("click", closeProofDialog);
 proofOverlay.addEventListener("click", e => { if (e.target === proofOverlay) closeProofDialog(); });
 
-proofUploadBtn.addEventListener("click", () => {
-  if (proofUploading) return;
-  proofFile.click();
-});
+proofUploadBtn.addEventListener("click", () => { if (!proofUploading) proofFile.click(); });
 
 proofFile.addEventListener("change", () => {
   const f = proofFile.files && proofFile.files[0];
   if (!f) return;
   proofErr.textContent = "";
   if (f.size > PROOF_MAX_BYTES) {
-    proofErr.textContent = "Ролик слишком большой (" + Math.round(f.size / 1048576) + " МБ). Максимум 50 МБ — это примерно 30 секунд съёмки.";
+    proofErr.textContent = "Ролик слишком большой (" + Math.round(f.size / 1048576) + " МБ). Максимум 50 МБ — это примерно 30 секунд.";
     proofFile.value = "";
     return;
   }
-  // проверяем длительность до загрузки
   const probe = document.createElement("video");
   probe.preload = "metadata";
   probe.onloadedmetadata = () => {
     const dur = probe.duration;
     URL.revokeObjectURL(probe.src);
     if (dur && dur > PROOF_MAX_SECONDS) {
-      proofErr.textContent = "Ролик длиной " + Math.round(dur) + " сек. Максимум — 30 секунд, обрежьте видео и попробуйте снова.";
+      proofErr.textContent = "Ролик длиной " + Math.round(dur) + " сек. Максимум — 30 секунд, обрежьте и попробуйте снова.";
       proofFile.value = "";
-    } else {
-      uploadProof(f);
-    }
+    } else { uploadProof(f); }
   };
   probe.onerror = () => { URL.revokeObjectURL(probe.src); uploadProof(f); };
   probe.src = URL.createObjectURL(f);
@@ -1301,12 +1557,8 @@ function uploadProof(f) {
       try { url = JSON.parse(xhr.responseText).secure_url; } catch (e) {}
       if (!url) { proofErr.textContent = "Что-то пошло не так — попробуйте ещё раз"; proofProgress.style.display = "none"; proofUploadBtn.textContent = "Загрузить"; return; }
       const ek = encKey(proofKey);
-      try {
-        const body = {}; body[ek] = url;
-        await fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(body) });
-      } catch (e) {}
+      try { const body = {}; body[ek] = url; await fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(body) }); } catch (e) {}
       proofs[ek] = url;
-      proofsSig = JSON.stringify(proofs);
       saveLocal();
       proofOverlay.classList.remove("open");
       buildUI();
@@ -1334,46 +1586,47 @@ proofRemoveBtn.addEventListener("click", async () => {
     const body = {}; body[ek] = null;
     const r = await fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    proofErr.textContent = "Нет сети — попробуйте позже";
-    return;
-  }
+  } catch (e) { proofErr.textContent = "Нет сети — попробуйте позже"; return; }
   delete proofs[ek];
-  proofsSig = JSON.stringify(proofs);
   saveLocal();
   proofOverlay.classList.remove("open");
   buildUI();
 });
 
-// ------- Видео к трюкам -------
+// ------- Видео к трюкам (обучающие) -------
 const videoOverlay = document.getElementById("video-overlay");
 const videoTitle = document.getElementById("video-title");
 const videoWatch = document.getElementById("video-watch");
 const videoUrl = document.getElementById("video-url");
 const videoErr = document.getElementById("video-err");
 const videoRemove = document.getElementById("video-remove");
+const videoOkBtn = document.getElementById("video-ok");
 let videoLinkKey = null;
 
 function openVideoDialog(linkKey, title) {
   videoLinkKey = linkKey;
   const url = links[encKey(linkKey)] || "";
+  const editable = canCurriculum();
   videoTitle.textContent = title;
   videoUrl.value = url;
   videoErr.textContent = "";
   videoWatch.style.display = url ? "" : "none";
   videoWatch.href = url || "#";
-  videoRemove.style.display = url ? "" : "none";
+  videoUrl.style.display = editable ? "" : "none";
+  videoOkBtn.style.display = editable ? "" : "none";
+  videoRemove.style.display = (editable && url) ? "" : "none";
+  document.getElementById("video-cancel").textContent = editable ? "Отмена" : "Закрыть";
   videoOverlay.classList.add("open");
-  if (!url) setTimeout(() => videoUrl.focus(), 50);
+  if (editable && !url) setTimeout(() => videoUrl.focus(), 50);
 }
 
 document.getElementById("video-cancel").addEventListener("click", () => videoOverlay.classList.remove("open"));
 videoOverlay.addEventListener("click", e => { if (e.target === videoOverlay) videoOverlay.classList.remove("open"); });
 videoWatch.addEventListener("click", () => videoOverlay.classList.remove("open"));
-videoUrl.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("video-ok").click(); });
+videoUrl.addEventListener("keydown", e => { if (e.key === "Enter") videoOkBtn.click(); });
 
-document.getElementById("video-ok").addEventListener("click", async () => {
-  if (!videoLinkKey) return;
+videoOkBtn.addEventListener("click", async () => {
+  if (!videoLinkKey || !canCurriculum()) return;
   let u = videoUrl.value.trim();
   if (!u) { videoErr.textContent = "Вставьте ссылку на видео"; return; }
   if (!/^https?:\/\//i.test(u)) u = "https://" + u;
@@ -1383,12 +1636,8 @@ document.getElementById("video-ok").addEventListener("click", async () => {
     const body = {}; body[ek] = u;
     const r = await fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    videoErr.textContent = "Нет сети — попробуйте позже";
-    return;
-  }
+  } catch (e) { videoErr.textContent = "Нет сети — попробуйте позже"; return; }
   links[ek] = u;
-  linksSig = JSON.stringify(links);
   saveLocal();
   videoOverlay.classList.remove("open");
   buildUI();
@@ -1396,24 +1645,20 @@ document.getElementById("video-ok").addEventListener("click", async () => {
 });
 
 videoRemove.addEventListener("click", async () => {
-  if (!videoLinkKey) return;
+  if (!videoLinkKey || !canCurriculum()) return;
   const ek = encKey(videoLinkKey);
   try {
     const body = {}; body[ek] = null;
     const r = await fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    videoErr.textContent = "Нет сети — попробуйте позже";
-    return;
-  }
+  } catch (e) { videoErr.textContent = "Нет сети — попробуйте позже"; return; }
   delete links[ek];
-  linksSig = JSON.stringify(links);
   saveLocal();
   videoOverlay.classList.remove("open");
   buildUI();
 });
 
-// ------- Добавление и удаление трюков -------
+// ------- Трюки -------
 const trickOverlay = document.getElementById("trick-overlay");
 const trickNameInput = document.getElementById("trick-name");
 const trickSub = document.getElementById("trick-sub");
@@ -1421,6 +1666,7 @@ const trickErr = document.getElementById("trick-err");
 let trickBlock = null;
 
 function openTrickDialog(block) {
+  if (!canCurriculum()) return;
   trickBlock = block;
   trickErr.textContent = "";
   trickNameInput.value = "";
@@ -1428,17 +1674,16 @@ function openTrickDialog(block) {
   trickOverlay.classList.add("open");
   setTimeout(() => trickNameInput.focus(), 50);
 }
-
 document.getElementById("trick-cancel").addEventListener("click", () => trickOverlay.classList.remove("open"));
 trickOverlay.addEventListener("click", e => { if (e.target === trickOverlay) trickOverlay.classList.remove("open"); });
 trickNameInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("trick-ok").click(); });
 
 document.getElementById("trick-ok").addEventListener("click", async () => {
-  if (!trickBlock) return;
+  if (!trickBlock || !canCurriculum()) return;
   const name = trickNameInput.value.trim().replace(/\|/g, " ");
   if (!name) { trickErr.textContent = "Введите название"; return; }
   const lower = name.toLowerCase();
-  const inCourse = trickBlock.groups.some(g => g.items.some(i => i.toLowerCase() === lower));
+  const inCourse = (trickBlock.groups || []).some(g => g.items.some(i => i.toLowerCase() === lower));
   const inCustom = tricksOf(trickBlock.id).some(t => t.name.toLowerCase() === lower);
   if (inCourse || inCustom) { trickErr.textContent = "Такой трюк уже есть в этом блоке"; return; }
   const id = "t" + Date.now();
@@ -1446,12 +1691,8 @@ document.getElementById("trick-ok").addEventListener("click", async () => {
   try {
     const r = await fetch(DB_URL + "/tricks/" + id + ".json", { method: "PUT", body: JSON.stringify(entry) });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    trickErr.textContent = "Нет сети — попробуйте позже";
-    return;
-  }
+  } catch (e) { trickErr.textContent = "Нет сети — попробуйте позже"; return; }
   customTricks[id] = entry;
-  tricksSig = JSON.stringify(customTricks);
   saveLocal();
   trickOverlay.classList.remove("open");
   buildUI();
@@ -1459,38 +1700,92 @@ document.getElementById("trick-ok").addEventListener("click", async () => {
 });
 
 async function removeTrick(id, name) {
+  if (!canCurriculum()) return;
   const t = customTricks[id];
   if (!t) return;
   if (!confirm("Удалить трюк «" + name + "»? Он исчезнет у всех вместе с отметками.")) return;
   try {
     const r = await fetch(DB_URL + "/tricks/" + id + ".json", { method: "DELETE" });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    alert("Нет сети — попробуйте позже");
-    return;
-  }
-  // стираем отметки этого трюка у всех
-  allPeople().forEach(p => {
+  } catch (e) { alert("Нет сети — попробуйте позже"); return; }
+  allProfiles().forEach(p => {
     const key = exKey(p.name, t.block, CUSTOM_GROUP, t.name);
     if (state[key]) delete state[key];
     pending[key] = null;
+    const pk = encKey(key);
+    if (proofs[pk]) { const b = {}; b[pk] = null; fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(b) }).catch(() => {}); delete proofs[pk]; }
   });
-  // и его видео-ссылку
   const lk = encKey(t.block + "|" + CUSTOM_GROUP + "|" + t.name);
-  if (links[lk]) {
-    const body = {}; body[lk] = null;
-    fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(body) }).catch(() => {});
-    delete links[lk];
-    linksSig = JSON.stringify(links);
-  }
+  if (links[lk]) { const b = {}; b[lk] = null; fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(b) }).catch(() => {}); delete links[lk]; }
   delete customTricks[id];
-  tricksSig = JSON.stringify(customTricks);
   saveLocal();
   buildUI();
   flush();
 }
 
-// ------- Добавление и удаление вкладок -------
+// ------- Блоки -------
+const blockOverlay = document.getElementById("block-overlay");
+const blockNameInput = document.getElementById("block-name");
+const blockSub = document.getElementById("block-sub");
+const blockErr = document.getElementById("block-err");
+
+function openBlockDialog() {
+  if (!canCurriculum()) return;
+  const s = SPORTS.find(x => x.id === activeSport);
+  blockErr.textContent = "";
+  blockNameInput.value = "";
+  blockSub.textContent = "В раздел «" + (s ? s.name : "") + "» — появится у всех.";
+  blockOverlay.classList.add("open");
+  setTimeout(() => blockNameInput.focus(), 50);
+}
+document.getElementById("block-cancel").addEventListener("click", () => blockOverlay.classList.remove("open"));
+blockOverlay.addEventListener("click", e => { if (e.target === blockOverlay) blockOverlay.classList.remove("open"); });
+blockNameInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("block-ok").click(); });
+
+document.getElementById("block-ok").addEventListener("click", async () => {
+  if (!canCurriculum()) return;
+  const title = blockNameInput.value.trim();
+  if (!title) { blockErr.textContent = "Введите название"; return; }
+  const id = "b" + Date.now();
+  const entry = { sport: activeSport, title: title, created: Date.now() };
+  try {
+    const r = await fetch(DB_URL + "/blocks/" + id + ".json", { method: "PUT", body: JSON.stringify(entry) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) { blockErr.textContent = "Нет сети — попробуйте позже"; return; }
+  customBlocks[id] = entry;
+  saveLocal();
+  blockOverlay.classList.remove("open");
+  buildUI();
+  setSync(MSG_OK, true);
+});
+
+async function removeBlock(id, title) {
+  if (!canCurriculum()) return;
+  if (!confirm("Удалить блок «" + title + "» со всеми трюками внутри? Это увидят все.")) return;
+  try {
+    const r = await fetch(DB_URL + "/blocks/" + id + ".json", { method: "DELETE" });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) { alert("Нет сети — попробуйте позже"); return; }
+  tricksOf(id).forEach(t => {
+    fetch(DB_URL + "/tricks/" + t.id + ".json", { method: "DELETE" }).catch(() => {});
+    allProfiles().forEach(p => {
+      const key = exKey(p.name, id, CUSTOM_GROUP, t.name);
+      if (state[key]) delete state[key];
+      pending[key] = null;
+      const pk = encKey(key);
+      if (proofs[pk]) { const b = {}; b[pk] = null; fetch(DB_URL + "/proofs.json", { method: "PATCH", body: JSON.stringify(b) }).catch(() => {}); delete proofs[pk]; }
+    });
+    const lk = encKey(id + "|" + CUSTOM_GROUP + "|" + t.name);
+    if (links[lk]) { const b = {}; b[lk] = null; fetch(DB_URL + "/links.json", { method: "PATCH", body: JSON.stringify(b) }).catch(() => {}); delete links[lk]; }
+    delete customTricks[t.id];
+  });
+  delete customBlocks[id];
+  saveLocal();
+  buildUI();
+  flush();
+}
+
+// ------- Добавить райдера (тренер) -------
 const overlay = document.getElementById("add-overlay");
 const nameInput = document.getElementById("add-name");
 const swatchesEl = document.getElementById("add-swatches");
@@ -1498,6 +1793,7 @@ const errEl = document.getElementById("add-err");
 let chosenPalette = 4;
 
 function openAddDialog() {
+  if (!isTrainer()) return;
   errEl.textContent = "";
   nameInput.value = "";
   chosenPalette = 4;
@@ -1515,86 +1811,266 @@ function openAddDialog() {
   overlay.classList.add("open");
   setTimeout(() => nameInput.focus(), 50);
 }
-
 document.getElementById("add-cancel").addEventListener("click", () => overlay.classList.remove("open"));
 overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+nameInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("add-ok").click(); });
 
 document.getElementById("add-ok").addEventListener("click", async () => {
+  if (!isTrainer()) return;
   const name = nameInput.value.trim().replace(/\|/g, " ");
   if (!name) { errEl.textContent = "Введите имя"; return; }
-  const exists = allPeople().some(p => p.name.toLowerCase() === name.toLowerCase());
-  if (exists) { errEl.textContent = "Такая вкладка уже есть"; return; }
-  const id = "p" + Date.now();
-  const entry = { name: name, palette: chosenPalette, created: Date.now() };
+  const existing = allProfiles().find(p => p.name.toLowerCase() === name.toLowerCase());
+  const realName = existing ? existing.name : name;
   try {
-    const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "PUT", body: JSON.stringify(entry) });
-    if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    errEl.textContent = "Нет сети — попробуйте позже";
-    return;
-  }
-  customPeople[id] = entry;
-  peopleSig = JSON.stringify(customPeople);
+    if (!existing) {
+      const id = "p" + Date.now();
+      const entry = { name: realName, palette: chosenPalette, created: Date.now() };
+      const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "PUT", body: JSON.stringify(entry) });
+      if (!r.ok) throw new Error(r.status);
+      customPeople[id] = entry;
+    }
+    const rk = encKey(user.name) + "|" + encKey(realName);
+    const b = {}; b[rk] = true;
+    const rr = await fetch(DB_URL + "/roster.json", { method: "PATCH", body: JSON.stringify(b) });
+    if (!rr.ok) throw new Error(rr.status);
+  } catch (e) { errEl.textContent = "Нет сети — попробуйте позже"; return; }
+  roster[encKey(user.name) + "|" + encKey(realName)] = true;
   saveLocal();
   overlay.classList.remove("open");
   buildUI();
-  activateTab(name);
+  activateTab(realName);
   setSync(MSG_OK, true);
 });
 
-nameInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("add-ok").click(); });
-
-async function removePerson(id, name) {
-  if (!confirm("Удалить вкладку «" + name + "» вместе со всеми отметками? Это увидят все.")) return;
+async function removeFromRoster(name) {
+  if (!isTrainer()) return;
+  if (!confirm("Убрать «" + name + "» из твоей группы? Прогресс райдера сохранится.")) return;
+  const rk = encKey(user.name) + "|" + encKey(name);
   try {
-    const r = await fetch(DB_URL + "/people/" + id + ".json", { method: "DELETE" });
+    const b = {}; b[rk] = null;
+    const r = await fetch(DB_URL + "/roster.json", { method: "PATCH", body: JSON.stringify(b) });
     if (!r.ok) throw new Error(r.status);
-  } catch (e) {
-    alert("Нет сети — попробуйте позже");
-    return;
-  }
-  // стираем отметки этого человека
-  Object.keys(state).forEach(k => {
-    if (k.indexOf(name + "|") === 0) { delete state[k]; pending[k] = null; }
-  });
-  delete customPeople[id];
-  peopleSig = JSON.stringify(customPeople);
-  localStorage.setItem(ACTIVE_KEY, allPeople()[0].name);
+  } catch (e) { alert("Нет сети — попробуйте позже"); return; }
+  delete roster[rk];
   saveLocal();
   buildUI();
-  flush();
 }
 
-// ------- Вид спорта: первый экран -------
+// ------- Подписка (райдер) -------
+const followOverlay = document.getElementById("follow-overlay");
+const followInput = document.getElementById("follow-name");
+const followErr = document.getElementById("follow-err");
+
+function openFollowDialog() {
+  if (!isRider()) return;
+  followErr.textContent = "";
+  followInput.value = "";
+  followOverlay.classList.add("open");
+  setTimeout(() => followInput.focus(), 50);
+}
+document.getElementById("follow-cancel").addEventListener("click", () => followOverlay.classList.remove("open"));
+followOverlay.addEventListener("click", e => { if (e.target === followOverlay) followOverlay.classList.remove("open"); });
+followInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("follow-ok").click(); });
+
+document.getElementById("follow-ok").addEventListener("click", async () => {
+  if (!isRider()) return;
+  const name = followInput.value.trim();
+  if (!name) { followErr.textContent = "Введите имя"; return; }
+  if (name.toLowerCase() === user.name.toLowerCase()) { followErr.textContent = "Это ты 🙂"; return; }
+  const prof = allProfiles().find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (!prof) { followErr.textContent = "Такого райдера нет"; return; }
+  const fk = encKey(user.name) + "|" + encKey(prof.name);
+  try {
+    const b = {}; b[fk] = true;
+    const r = await fetch(DB_URL + "/follows.json", { method: "PATCH", body: JSON.stringify(b) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) { followErr.textContent = "Нет сети — попробуйте позже"; return; }
+  follows[fk] = true;
+  saveLocal();
+  followOverlay.classList.remove("open");
+  buildUI();
+  activateTab(prof.name);
+  setSync(MSG_OK, true);
+});
+
+async function unfollow(name) {
+  if (!isRider()) return;
+  const fk = encKey(user.name) + "|" + encKey(name);
+  try {
+    const b = {}; b[fk] = null;
+    const r = await fetch(DB_URL + "/follows.json", { method: "PATCH", body: JSON.stringify(b) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) { alert("Нет сети — попробуйте позже"); return; }
+  delete follows[fk];
+  saveLocal();
+  buildUI();
+}
+
+// ------- Авторизация -------
+const authScreen = document.getElementById("auth-screen");
 const startScreen = document.getElementById("start-screen");
 const appEl = document.getElementById("app");
 const appTitle = document.getElementById("app-title");
+const whoBar = document.getElementById("who-bar");
 const sportsEl = document.getElementById("sports");
 const sportChoices = document.getElementById("sport-choices");
 
-function currentCourse() {
-  const s = SPORTS.find(x => x.id === activeSport);
-  return s ? s.course : COURSE_WAKE;
+function showAuth() {
+  authScreen.style.display = "";
+  startScreen.style.display = "none";
+  appEl.style.display = "none";
+  window.scrollTo(0, 0);
 }
-
-function setSport(id) {
-  activeSport = id;
-  localStorage.setItem(SPORT_KEY, id);
-  const s = SPORTS.find(x => x.id === id);
-  appTitle.textContent = s.emoji + " " + s.name;
+function showSportScreen() {
+  authScreen.style.display = "none";
+  startScreen.style.display = "";
+  appEl.style.display = "none";
+  window.scrollTo(0, 0);
+}
+function showApp() {
+  authScreen.style.display = "none";
   startScreen.style.display = "none";
   appEl.style.display = "";
+  const s = SPORTS.find(x => x.id === activeSport) || SPORTS[2];
+  appTitle.textContent = s.emoji + " " + s.name;
+  renderWho();
   renderSportChip();
   buildUI();
   window.scrollTo(0, 0);
 }
 
-function showStart() {
-  appEl.style.display = "none";
-  startScreen.style.display = "";
-  window.scrollTo(0, 0);
+function renderWho() {
+  whoBar.innerHTML = "";
+  if (!user) return;
+  const span = document.createElement("span");
+  span.innerHTML = "Вы: <b>" + user.name + "</b>";
+  whoBar.appendChild(span);
+  const role = document.createElement("span");
+  role.className = "role";
+  role.textContent = user.role === "trainer" ? "Тренер 🎓" : "Райдер 🏂";
+  whoBar.appendChild(role);
+  const out = document.createElement("button");
+  out.className = "logout";
+  out.textContent = "выйти";
+  out.addEventListener("click", logout);
+  whoBar.appendChild(out);
 }
 
+function logout() {
+  user = null;
+  localStorage.removeItem(USER_KEY);
+  showAuth();
+}
+
+async function fetchUsers() {
+  try { const r = await fetch(DB_URL + "/users.json"); return (await r.json()) || {}; }
+  catch (e) { return null; }
+}
+
+// Регистрация
+const registerOverlay = document.getElementById("register-overlay");
+const registerTitle = document.getElementById("register-title");
+const registerSub = document.getElementById("register-sub");
+const registerName = document.getElementById("register-name");
+const registerPass = document.getElementById("register-pass");
+const registerErr = document.getElementById("register-err");
+let registerRole = "rider";
+
+function openRegister(role) {
+  registerRole = role;
+  registerTitle.textContent = role === "trainer" ? "Регистрация тренера 🎓" : "Регистрация райдера 🏂";
+  registerSub.textContent = role === "trainer" ? "Тренер ведёт группу райдеров" : "Райдер отмечает свой прогресс";
+  registerName.value = "";
+  registerPass.value = "";
+  registerErr.textContent = "";
+  registerOverlay.classList.add("open");
+  setTimeout(() => registerName.focus(), 50);
+}
+document.getElementById("auth-reg-trainer").addEventListener("click", () => openRegister("trainer"));
+document.getElementById("auth-reg-rider").addEventListener("click", () => openRegister("rider"));
+document.getElementById("register-cancel").addEventListener("click", () => registerOverlay.classList.remove("open"));
+registerOverlay.addEventListener("click", e => { if (e.target === registerOverlay) registerOverlay.classList.remove("open"); });
+registerPass.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("register-ok").click(); });
+
+document.getElementById("register-ok").addEventListener("click", async () => {
+  const name = registerName.value.trim().replace(/\|/g, " ");
+  const pass = registerPass.value;
+  if (!name) { registerErr.textContent = "Введите имя"; return; }
+  if (pass.length < 4) { registerErr.textContent = "Пароль — минимум 4 символа"; return; }
+  registerErr.textContent = "Проверяем…";
+  const remote = await fetchUsers();
+  if (remote === null) { registerErr.textContent = "Нет сети — попробуйте позже"; return; }
+  users = remote;
+  const en = encKey(name);
+  if (users[en]) { registerErr.textContent = "Имя уже занято — придумайте другое или войдите"; return; }
+  const hash = await sha256(name + "|" + pass);
+  const entry = { name: name, role: registerRole, pass: hash, created: Date.now() };
+  try {
+    const ub = {}; ub[en] = entry;
+    const r = await fetch(DB_URL + "/users.json", { method: "PATCH", body: JSON.stringify(ub) });
+    if (!r.ok) throw new Error(r.status);
+    if (registerRole === "rider" && !allProfiles().some(p => p.name === name)) {
+      const id = "p" + Date.now();
+      const pe = { name: name, palette: hashPalette(name), created: Date.now() };
+      await fetch(DB_URL + "/people/" + id + ".json", { method: "PUT", body: JSON.stringify(pe) });
+      customPeople[id] = pe;
+    }
+  } catch (e) { registerErr.textContent = "Нет сети — попробуйте позже"; return; }
+  users[en] = entry;
+  user = { name: name, role: registerRole, pass: hash };
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  saveLocal();
+  registerOverlay.classList.remove("open");
+  afterAuth();
+});
+
+// Вход
+const loginOverlay = document.getElementById("login-overlay");
+const loginName = document.getElementById("login-name");
+const loginPass = document.getElementById("login-pass");
+const loginErr = document.getElementById("login-err");
+
+document.getElementById("auth-login").addEventListener("click", () => {
+  loginName.value = ""; loginPass.value = ""; loginErr.textContent = "";
+  loginOverlay.classList.add("open");
+  setTimeout(() => loginName.focus(), 50);
+});
+document.getElementById("login-cancel").addEventListener("click", () => loginOverlay.classList.remove("open"));
+loginOverlay.addEventListener("click", e => { if (e.target === loginOverlay) loginOverlay.classList.remove("open"); });
+loginPass.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("login-ok").click(); });
+
+document.getElementById("login-ok").addEventListener("click", async () => {
+  const name = loginName.value.trim();
+  const pass = loginPass.value;
+  if (!name || !pass) { loginErr.textContent = "Введите имя и пароль"; return; }
+  loginErr.textContent = "Проверяем…";
+  const remote = await fetchUsers();
+  if (remote === null) { loginErr.textContent = "Нет сети — попробуйте позже"; return; }
+  users = remote;
+  const en = encKey(name);
+  const u = users[en];
+  if (!u) { loginErr.textContent = "Такого аккаунта нет"; return; }
+  const hash = await sha256(u.name + "|" + pass);
+  if (hash !== u.pass) { loginErr.textContent = "Неверный пароль"; return; }
+  user = { name: u.name, role: u.role, pass: u.pass };
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  loginOverlay.classList.remove("open");
+  afterAuth();
+});
+
+function afterAuth() {
+  renderWho();
+  if (!localStorage.getItem(SPORT_KEY)) showSportScreen();
+  else showApp();
+  pull();
+}
+
+// ------- Вид спорта -------
+function setSport(id) {
+  activeSport = id;
+  localStorage.setItem(SPORT_KEY, id);
+  showApp();
+}
 function renderSportChip() {
   const s = SPORTS.find(x => x.id === activeSport);
   sportsEl.innerHTML = "";
@@ -1602,11 +2078,9 @@ function renderSportChip() {
   b.className = "sport-chip active";
   b.innerHTML = "<span>" + s.emoji + "</span><span>" + s.name + "</span><span style=\"opacity:.65;font-weight:400\">· сменить</span>";
   b.title = "Выбрать другой вид спорта";
-  b.addEventListener("click", showStart);
+  b.addEventListener("click", showSportScreen);
   sportsEl.appendChild(b);
 }
-
-// кнопки на первом экране
 SPORTS.forEach(s => {
   const b = document.createElement("button");
   b.className = "sport-big";
@@ -1616,13 +2090,15 @@ SPORTS.forEach(s => {
 });
 
 // ------- Запуск -------
-buildUI();
+if (!user) showAuth();
+else if (!localStorage.getItem(SPORT_KEY)) showSportScreen();
+else showApp();
+
 pull();
 setInterval(pull, 20000);
 window.addEventListener("online", pull);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
 
-// PWA: службный скрипт для установки на телефон
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
